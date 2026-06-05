@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EntryCategory {
+  LEARNED
+  REMEMBERED
+  TODO
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  messages     Message[]
+  entries      Entry[]
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  rawText   String
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries   Entry[]
+
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model Entry {
+  id          String        @id @default(cuid())
+  content     String
+  category    EntryCategory
+  usefulVotes Int           @default(0)
+  completed   Boolean       @default(false)
+  isPublic    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  messageId   String?
+  message     Message?      @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([createdAt])
+  @@index([usefulVotes])
+  @@index([userId])
+  @@index([isPublic])
+}
