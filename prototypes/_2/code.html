@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Inspiration Book - Публичный борд</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed-dim": "#d2bbff",
+                    "on-secondary-fixed-variant": "#003ea8",
+                    "on-error-container": "#93000a",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-variant": "#e1e2e4",
+                    "surface-container-highest": "#e1e2e4",
+                    "primary-fixed-dim": "#c0c6db",
+                    "inverse-on-surface": "#f0f1f3",
+                    "on-background": "#191c1e",
+                    "on-secondary-container": "#fefcff",
+                    "on-primary-container": "#7d8497",
+                    "on-tertiary-container": "#9863ff",
+                    "secondary": "#0051d5",
+                    "inverse-primary": "#c0c6db",
+                    "surface-container": "#edeef0",
+                    "surface-container-high": "#e7e8ea",
+                    "inverse-surface": "#2e3132",
+                    "on-tertiary-fixed-variant": "#5a00c6",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#191c1e",
+                    "tertiary-container": "#25005a",
+                    "surface-bright": "#f8f9fb",
+                    "background": "#f8f9fb",
+                    "secondary-container": "#316bf3",
+                    "surface-tint": "#575e70",
+                    "on-surface-variant": "#45464c",
+                    "secondary-fixed": "#dbe1ff",
+                    "primary-container": "#141b2b",
+                    "outline": "#76777d",
+                    "secondary-fixed-dim": "#b4c5ff",
+                    "surface-container-low": "#f3f4f6",
+                    "on-error": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "on-primary-fixed": "#141b2b",
+                    "on-secondary-fixed": "#00174b",
+                    "on-tertiary-fixed": "#25005a",
+                    "tertiary-fixed": "#eaddff",
+                    "on-primary-fixed-variant": "#404758",
+                    "tertiary": "#000000",
+                    "surface": "#f8f9fb",
+                    "primary-fixed": "#dce2f7",
+                    "outline-variant": "#c6c6cd",
+                    "on-secondary": "#ffffff",
+                    "primary": "#000000",
+                    "surface-dim": "#d9dadc",
+                    "on-primary": "#ffffff",
+                    "error": "#ba1a1a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "container-max-width": "768px",
+                    "gutter": "16px",
+                    "section-gap": "24px",
+                    "unit": "8px",
+                    "card-padding": "16px"
+            },
+            "fontFamily": {
+                    "headline-h2": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "headline-h1": ["Inter"],
+                    "caption": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-h2": ["18px", {"lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-h1": ["22px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "caption": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+                    "body-md": ["15px", {"lineHeight": "22px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f3f4f6;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .entry-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .entry-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="font-body-md text-on-surface">
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 left-0 w-full z-50 bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline h-16 flex items-center px-gutter">
+<div class="max-w-container-max-width mx-auto w-full flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">menu</span>
+<h1 class="font-headline-h1 text-headline-h1-mobile lowercase text-primary dark:text-on-primary-fixed flex items-center">
+                    inspiration book 📓
+                </h1>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="font-label-caps text-label-caps text-secondary dark:text-secondary-fixed font-bold hover:opacity-80 transition-opacity" href="#">Борд</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:opacity-80 transition-opacity" href="#">Вход</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant dark:text-on-surface-variant hover:opacity-80 transition-opacity" href="#">Регистрация</a>
+</nav>
+<div class="md:hidden">
+<img class="w-8 h-8 rounded-full border border-outline-variant" data-alt="A clean, professional minimalist profile avatar icon for a mobile interface, set against a soft gray background with a subtle halo of light. The aesthetic is modern and focuses on high-quality vector details, matching a light-themed app UI with black and white accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcGDwpOlkzWH9HnBbGfRU7pQpwMkSF6uAQA_bVM3Vc2qJ2kLf50eRHTi7OVGcv0Xrjo7BKdUEUthlmDdmrGatbrxonrj_D-7XHXlL5gF7detKHlVvurH8cUs94lff5Jl2LN17frlO8JlvtKP7ls1tXnNqX5mtWdhqKHubTMhRhyIXLPjMIv9ey-dVp5NiyJ2Hz-dJao59Jg0fO3mEhZO4ZaIUDrEGnFX6o-s3s25N_r8eBDmTI55wne4KzVviPnYQdngDskLaswEb5"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 pb-20 px-gutter max-w-container-max-width mx-auto min-h-screen">
+<!-- Hero Section -->
+<section class="mb-section-gap text-center md:text-left">
+<h2 class="font-headline-h1 text-headline-h1 lowercase mb-2">Публичный борд</h2>
+<p class="text-on-surface-variant text-body-md">Полезные заметки нашего сообщества</p>
+</section>
+<!-- Filter Panel -->
+<section class="mb-section-gap space-y-3">
+<div class="flex flex-col md:flex-row gap-3">
+<!-- Mobile Selects -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-2 w-full">
+<div class="relative">
+<select class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-body-md appearance-none focus:ring-1 focus:ring-secondary transition-all">
+<option>Все категории</option>
+<option>Узнал</option>
+<option>Вспомнил</option>
+<option>Сделать</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+<div class="relative">
+<select class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-body-md appearance-none focus:ring-1 focus:ring-secondary transition-all">
+<option>По полезности</option>
+<option>По дате</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+<div class="relative">
+<select class="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-body-md appearance-none focus:ring-1 focus:ring-secondary transition-all">
+<option>Всё время</option>
+<option>Сегодня</option>
+<option>Неделя</option>
+<option>Месяц</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-3 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Day Header -->
+<div class="mb-4">
+<h3 class="font-headline-h2 text-headline-h2 lowercase text-on-surface-variant">понедельник, 29 июня</h3>
+</div>
+<!-- Feed of Cards -->
+<div class="space-y-4"><article class="entry-card bg-surface-container-lowest rounded-xl p-card-padding border border-outline-variant border-l-[4px] border-l-[#2563eb]"><div class="flex justify-between items-start mb-2"><div class="flex flex-col"><span class="inline-flex items-center px-3 py-1 rounded-full bg-[#2563eb1a] text-[#2563eb] text-label-caps font-label-caps">Lofi</span><span class="text-on-surface-variant text-caption mt-1">Алексей</span></div><time class="text-on-surface-variant text-caption">Только что</time></div><div class="mb-4"><p class="text-body-md leading-relaxed mb-3">Лучший плейлист для концентрации</p><div class="relative aspect-video bg-surface-container rounded-lg overflow-hidden flex items-center justify-center group cursor-pointer"><div class="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors"></div><span class="material-symbols-outlined text-white text-5xl z-10">play_circle</span><div class="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-1 rounded">1:24:05</div></div></div><div class="flex items-center gap-3"><button class="flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant hover:bg-surface-container transition-colors active:scale-95 duration-150"><span class="text-caption font-semibold">👍 Полезно</span><span class="text-caption font-semibold text-on-surface-variant border-l border-outline-variant pl-2">0</span></button><button class="p-2 text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">bookmark</span></button></div></article><article class="entry-card bg-surface-container-lowest rounded-xl p-card-padding border border-outline-variant border-l-[4px] border-l-[#7c3aed]"><div class="flex justify-between items-start mb-2"><div class="flex flex-col"><span class="inline-flex items-center px-3 py-1 rounded-full bg-[#7c3aed1a] text-[#7c3aed] text-label-caps font-label-caps">Дизайн</span><span class="text-on-surface-variant text-caption mt-1">Дмитрий</span></div><time class="text-on-surface-variant text-caption">5 минут назад</time></div><div class="mb-4"><p class="text-body-md leading-relaxed mb-3">Нашел отличный пример минимализма в архитектуре.</p><div class="rounded-lg overflow-hidden border border-outline-variant">{{DATA:IMAGE:IMAGE_1}}</div></div><div class="flex items-center gap-3"><button class="flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant hover:bg-surface-container transition-colors active:scale-95 duration-150"><span class="text-caption font-semibold">👍 Полезно</span><span class="text-caption font-semibold text-on-surface-variant border-l border-outline-variant pl-2">15</span></button><button class="p-2 text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">bookmark</span></button></div></article>
+<!-- Entry Card 1: Learned -->
+<article class="entry-card bg-surface-container-lowest rounded-xl p-card-padding border border-outline-variant border-l-[4px] border-l-[#2563eb]">
+<div class="flex justify-between items-start mb-2">
+<div class="flex flex-col">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-[#2563eb1a] text-[#2563eb] text-label-caps font-label-caps">Lofi</span>
+<span class="text-on-surface-variant text-caption mt-1">Мария</span>
+</div>
+<time class="text-on-surface-variant text-caption">15 минут назад</time>
+</div>
+<div class="mb-4">
+<p class="text-body-md leading-relaxed">Как писать vibe code: это не просто функциональность, это передача эмоционального состояния через структуру и чистоту логики. Важно чувствовать ритм компонентов.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant hover:bg-surface-container transition-colors active:scale-95 duration-150">
+<span class="text-caption font-semibold">👍 Полезно</span>
+<span class="text-caption font-semibold text-on-surface-variant border-l border-outline-variant pl-2">24</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">bookmark</span>
+</button>
+</div>
+</article>
+<!-- Entry Card 2: Remembered -->
+<article class="entry-card bg-surface-container-lowest rounded-xl p-card-padding border border-outline-variant border-l-[4px] border-l-[#7c3aed]">
+<div class="flex justify-between items-start mb-2">
+<div class="flex flex-col">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-[#7c3aed1a] text-[#7c3aed] text-label-caps font-label-caps">Музыка</span>
+<span class="text-on-surface-variant text-caption mt-1">Александр</span>
+</div>
+<time class="text-on-surface-variant text-caption">1 час назад</time>
+</div>
+<div class="mb-4">
+<p class="text-body-md leading-relaxed">Метод "второго мозга" Тиаго Форте отлично дополняет ведение общего борда. Каждая заметка — это семя для будущих идей.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant hover:bg-surface-container transition-colors active:scale-95 duration-150">
+<span class="text-caption font-semibold">👍 Полезно</span>
+<span class="text-caption font-semibold text-on-surface-variant border-l border-outline-variant pl-2">12</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">bookmark</span>
+</button>
+</div>
+</article>
+<!-- Entry Card 3: Todo -->
+<article class="entry-card bg-surface-container-lowest rounded-xl p-card-padding border border-outline-variant border-l-[4px] border-l-[#059669]">
+<div class="flex justify-between items-start mb-2">
+<div class="flex flex-col">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-[#0596691a] text-[#059669] text-label-caps font-label-caps">Интерфейсы</span>
+<span class="text-on-surface-variant text-caption mt-1">Елена</span>
+</div>
+<time class="text-on-surface-variant text-caption">3 часа назад</time>
+</div>
+<div class="mb-4">
+<p class="text-body-md leading-relaxed">Начать рабочий день до 9:00 хотя бы три раза в неделю. Тишина утреннего времени — лучший союзник для глубокой работы (Deep Work).</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant hover:bg-surface-container transition-colors active:scale-95 duration-150">
+<span class="text-caption font-semibold">👍 Полезно</span>
+<span class="text-caption font-semibold text-on-surface-variant border-l border-outline-variant pl-2">48</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">bookmark</span>
+</button>
+</div>
+</article>
+<!-- Day Header Secondary -->
+<div class="pt-4 mb-4">
+<h3 class="font-headline-h2 text-headline-h2 lowercase text-on-surface-variant">воскресенье, 28 июня</h3>
+</div>
+<!-- Entry Card 4: Generic -->
+<article class="entry-card bg-surface-container-lowest rounded-xl p-card-padding border border-outline-variant border-l-[4px] border-l-outline-variant">
+<div class="flex justify-between items-start mb-2">
+<div class="flex flex-col">
+<span class="inline-flex items-center px-3 py-1 rounded-full bg-surface-variant text-on-surface-variant text-label-caps font-label-caps">Мысль</span>
+<span class="text-on-surface-variant text-caption mt-1">Виктор</span>
+</div>
+<time class="text-on-surface-variant text-caption">Вчера</time>
+</div>
+<div class="mb-4">
+<p class="text-body-md leading-relaxed">Минимализм в интерфейсах — это не отсутствие элементов, а отсутствие лишних вопросов у пользователя.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 rounded-full border border-outline-variant hover:bg-surface-container transition-colors active:scale-95 duration-150">
+<span class="text-caption font-semibold">👍 Полезно</span>
+<span class="text-caption font-semibold text-on-surface-variant border-l border-outline-variant pl-2">7</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">bookmark</span>
+</button>
+</div>
+</article>
+</div>
+</main>
+<!-- Bottom Navigation Bar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center py-2 bg-surface dark:bg-surface-dim border-t border-outline-variant dark:border-outline">
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim transition-transform translate-y-[-2px]" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">grid_view</span>
+<span class="font-label-caps text-label-caps mt-1">board</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed-dim" href="#">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-label-caps text-label-caps mt-1">chat</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed-dim" href="#">
+<span class="material-symbols-outlined">auto_stories</span>
+<span class="font-label-caps text-label-caps mt-1">diary</span>
+</a>
+</nav>
+<!-- FAB for adding new entry -->
+<button class="fixed bottom-20 right-6 md:bottom-8 md:right-8 bg-primary text-on-primary w-14 h-14 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform z-40">
+<span class="material-symbols-outlined text-[28px]">add</span>
+</button>
+<script>
+        // Micro-interactions and effects
+        document.querySelectorAll('.entry-card button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                if (this.innerText.includes('Полезно')) {
+                    const countSpan = this.querySelector('span:last-child');
+                    let count = parseInt(countSpan.innerText);
+                    
+                    if (this.classList.contains('bg-surface-variant')) {
+                        this.classList.remove('bg-surface-variant');
+                        countSpan.innerText = count - 1;
+                    } else {
+                        this.classList.add('bg-surface-variant');
+                        countSpan.innerText = count + 1;
+                        
+                        // Small bounce effect
+                        this.style.transform = 'scale(1.05)';
+                        setTimeout(() => this.style.transform = 'scale(1)', 150);
+                    }
+                }
+            });
+        });
+    </script>
+</body></html>
