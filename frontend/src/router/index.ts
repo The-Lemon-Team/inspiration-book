@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import HomeView from '@/views/HomeView.vue';
+import TagsView from '@/views/TagsView.vue';
 import ChatView from '@/views/ChatView.vue';
 import TimelineView from '@/views/TimelineView.vue';
 import CalendarView from '@/views/CalendarView.vue';
@@ -12,6 +13,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'home', component: HomeView },
+    { path: '/tags', name: 'tags', component: TagsView, meta: { requiresAuth: true } },
     { path: '/login', name: 'login', component: LoginView, meta: { guestOnly: true } },
     { path: '/register', name: 'register', component: RegisterView, meta: { guestOnly: true } },
     { path: '/chat', name: 'chat', component: ChatView, meta: { requiresAuth: true } },

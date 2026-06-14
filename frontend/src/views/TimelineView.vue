@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { api } from '@/api/client';
+import { tagsApi } from '@/api/tags';
 import EntryCard from '@/components/EntryCard.vue';
-import type { EntryCategory, TimelineDay } from '@/types';
+import type { Tag, TimelineDay } from '@/types';
 
+const route = useRoute();
 const timeline = ref<TimelineDay[]>([]);
-const category = ref<EntryCategory | ''>('');
+const tags = ref<Tag[]>([]);
+const tagId = ref('');
+const visibility = ref<'all' | 'public' | 'private'>('all');
 const loading = ref(true);
 const error = ref('');
 
@@ -13,9 +18,10 @@ async function loadTimeline() {
   loading.value = true;
   error.value = '';
   try {
-    timeline.value = await api.getTimeline(
-      category.value ? { category: category.value } : undefined,
-    );
+    timeline.value = await api.getTimeline({
+      tagId: tagId.value || undefined,
+      visibility: visibility.value,
+    });
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось загрузить ленту';
   } finally {
@@ -45,20 +51,62 @@ async function togglePublic(id: string, isPublic: boolean) {
   }
 }
 
-onMounted(loadTimeline);
+onMounted(async () => {
+  try {
+    tags.value = await tagsApi.list();
+    tagId.value = (route.query.tagId as string) || '';
+    await loadTimeline();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Ошибка загрузки';
+  }
+});
+
+watch(
+  () => route.query.tagId,
+  (value) => {
+    tagId.value = (value as string) || '';
+    loadTimeline();
+  },
+);
 </script>
 
 <template>
   <section class="page">
-    <header class="page-header">
-      <h2>Лента по дням</h2>
-      <select v-model="category" @change="loadTimeline">
-        <option value="">Все категории</option>
-        <option value="LEARNED">Узнал</option>
-        <option value="REMEMBERED">Вспомнил</option>
-        <option value="TODO">Сделать</option>
-      </select>
+    <header class="page-hero">
+      <h2 class="page-title">лента по дням</h2>
+      <p class="caption">Все ваши публикации</p>
     </header>
+
+    <div class="filter-row">
+      <button
+        class="filter-chip"
+        :class="{ active: !tagId }"
+        @click="tagId = ''; loadTimeline()"
+      >
+        все теги
+      </button>
+      <button
+        v-for="tag in tags"
+        :key="tag.id"
+        class="filter-chip"
+        :class="{ active: tagId === tag.id }"
+        @click="tagId = tag.id; loadTimeline()"
+      >
+        {{ tag.name }}
+      </button>
+    </div>
+
+    <div class="filter-row">
+      <button
+        v-for="option in ['all', 'public', 'private'] as const"
+        :key="option"
+        class="filter-chip"
+        :class="{ active: visibility === option }"
+        @click="visibility = option; loadTimeline()"
+      >
+        {{ option === 'all' ? 'все' : option === 'public' ? 'публичные' : 'приватные' }}
+      </button>
+    </div>
 
     <p v-if="loading" class="muted">Загрузка…</p>
     <p v-else-if="error" class="error">{{ error }}</p>
@@ -66,7 +114,15 @@ onMounted(loadTimeline);
 
     <div v-else class="timeline">
       <section v-for="day in timeline" :key="day.date" class="timeline-day">
-        <h3>{{ new Date(day.date).toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }) }}</h3>
+        <h3>
+          {{
+            new Date(day.date).toLocaleDateString('ru-RU', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+            })
+          }}
+        </h3>
         <EntryCard
           v-for="entry in day.entries"
           :key="entry.id"

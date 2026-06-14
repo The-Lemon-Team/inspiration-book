@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { api } from '@/api/client';
+import TagBadge from '@/components/TagBadge.vue';
 import type { Message } from '@/types';
-import { CATEGORY_LABELS } from '@/types';
 
 const messages = ref<Message[]>([]);
 const draft = ref('');
@@ -14,13 +14,14 @@ const placeholder = `Узнал:
  - Как варить суп
  - Как писать vibe code
 
+lo-fi:
+ - Jazz-hop плейлист для работы
+
 Вспомнил:
  - Сходить к стоматологу
- - Посадить смородину
 
 Сделать:
  - Поесть
- - Сходить в душ
  - Начать рабочий день`;
 
 async function loadMessages() {
@@ -55,22 +56,24 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="chat">
+  <section class="page chat">
+    <header class="page-hero">
+      <h2 class="page-title">чат</h2>
+      <p class="caption">Пишите блоками с тегами — Узнал, lo-fi, музыка, что угодно</p>
+    </header>
+
     <div class="chat-feed">
       <p v-if="messages.length === 0" class="empty-state">
-        Пока записей нет. Напишите первое сообщение в формате дневника.
+        Пока записей нет. Напишите первое сообщение.
       </p>
 
       <article v-for="message in messages" :key="message.id" class="message-bubble">
-        <header class="message-time">
-          {{ new Date(message.createdAt).toLocaleString('ru-RU') }}
-        </header>
+        <time class="caption">{{ new Date(message.createdAt).toLocaleString('ru-RU') }}</time>
         <pre class="message-text">{{ message.rawText }}</pre>
         <ul class="message-entries">
-          <li v-for="entry in message.entries" :key="entry.id">
-            <span class="mini-badge">{{ CATEGORY_LABELS[entry.category] }}</span>
-            {{ entry.content }}
-            <span v-if="entry.isPublic" class="public-tag">публично</span>
+          <li v-for="entry in message.entries" :key="entry.id" class="message-entry-row">
+            <TagBadge :tag="entry.tag" small />
+            <span>{{ entry.content }}</span>
           </li>
         </ul>
       </article>
@@ -85,7 +88,7 @@ onMounted(async () => {
       />
       <label class="checkbox-label">
         <input v-model="isPublic" type="checkbox" :disabled="loading" />
-        Опубликовать записи на общем борде
+        Опубликовать на общем борде
       </label>
       <p v-if="error" class="error">{{ error }}</p>
       <button type="submit" :disabled="loading || !draft.trim()">

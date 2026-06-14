@@ -1,8 +1,6 @@
 import type {
   CalendarDay,
-  CategoryInfo,
   Entry,
-  EntryCategory,
   Message,
   TimelineDay,
 } from '@/types';
@@ -22,26 +20,38 @@ export const api = {
     return request<Message[]>(`${API_BASE}/messages`);
   },
 
-  getPublicBoard(limit = 50) {
-    return request<Entry[]>(`${API_BASE}/public?limit=${limit}`);
+  getPublicBoard(limit = 50, tagId?: string) {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (tagId) params.set('tagId', tagId);
+    return request<Entry[]>(`${API_BASE}/public?${params}`);
   },
 
   getEntries(params?: {
-    category?: EntryCategory;
+    tagId?: string;
     from?: string;
     to?: string;
+    visibility?: 'all' | 'public' | 'private';
   }) {
     const search = new URLSearchParams();
-    if (params?.category) search.set('category', params.category);
+    if (params?.tagId) search.set('tagId', params.tagId);
     if (params?.from) search.set('from', params.from);
     if (params?.to) search.set('to', params.to);
+    if (params?.visibility && params.visibility !== 'all') {
+      search.set('visibility', params.visibility);
+    }
     const query = search.toString();
     return request<Entry[]>(`${API_BASE}${query ? `?${query}` : ''}`);
   },
 
-  getTimeline(params?: { category?: EntryCategory }) {
+  getTimeline(params?: {
+    tagId?: string;
+    visibility?: 'all' | 'public' | 'private';
+  }) {
     const search = new URLSearchParams();
-    if (params?.category) search.set('category', params.category);
+    if (params?.tagId) search.set('tagId', params.tagId);
+    if (params?.visibility && params.visibility !== 'all') {
+      search.set('visibility', params.visibility);
+    }
     const query = search.toString();
     return request<TimelineDay[]>(`${API_BASE}/timeline${query ? `?${query}` : ''}`);
   },
@@ -54,10 +64,6 @@ export const api = {
 
   getTop(limit = 10) {
     return request<Entry[]>(`${API_BASE}/top?limit=${limit}`);
-  },
-
-  getCategories() {
-    return request<CategoryInfo[]>(`${API_BASE}/categories`);
   },
 
   vote(id: string) {

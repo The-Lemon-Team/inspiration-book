@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Entry } from '@/types';
-import { CATEGORY_COLORS, CATEGORY_LABELS, displayName } from '@/types';
+import { displayName, tagStyle } from '@/types';
+import TagBadge from './TagBadge.vue';
 
 defineProps<{
   entry: Entry;
@@ -16,14 +17,15 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <article class="entry-card" :style="{ borderLeftColor: CATEGORY_COLORS[entry.category] }">
+  <article
+    class="entry-card card-hover"
+    :style="{ borderLeftColor: tagStyle(entry.tag.color).borderLeftColor }"
+  >
     <div class="entry-meta">
-      <span class="category-badge" :style="{ background: CATEGORY_COLORS[entry.category] }">
-        {{ CATEGORY_LABELS[entry.category] }}
-      </span>
-      <time>{{ new Date(entry.createdAt).toLocaleString('ru-RU') }}</time>
+      <TagBadge :tag="entry.tag" />
+      <time class="caption">{{ new Date(entry.createdAt).toLocaleString('ru-RU') }}</time>
     </div>
-    <p v-if="showAuthor && entry.user" class="entry-author">
+    <p v-if="showAuthor && entry.user" class="entry-author caption">
       {{ displayName(entry.user) }}
     </p>
     <p class="entry-content">{{ entry.content }}</p>
