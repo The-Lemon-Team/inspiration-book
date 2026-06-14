@@ -1,10 +1,9 @@
-import { EntryCategory } from '@prisma/client';
-import { IsDateString, IsEnum, IsOptional } from 'class-validator';
+import { IsDateString, IsOptional, IsString } from 'class-validator';
 
 export class QueryEntriesDto {
   @IsOptional()
-  @IsEnum(EntryCategory)
-  category?: EntryCategory;
+  @IsString()
+  tagId?: string;
 
   @IsOptional()
   @IsDateString()
@@ -13,4 +12,8 @@ export class QueryEntriesDto {
   @IsOptional()
   @IsDateString()
   to?: string;
+
+  @IsOptional()
+  @IsString()
+  visibility?: 'all' | 'public' | 'private';
 }

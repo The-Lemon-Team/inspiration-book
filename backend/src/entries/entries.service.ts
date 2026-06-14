@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { EntryCategory, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { QueryEntriesDto } from './dto/query-entries.dto';
@@ -16,6 +16,12 @@ const publicUserSelect = {
   email: true,
 } as const;
 
+const entryInclude = {
+  tag: true,
+  message: true,
+  user: { select: publicUserSelect },
+} as const;
+
 @Injectable()
 export class EntriesService {
   constructor(
@@ -24,10 +30,10 @@ export class EntriesService {
   ) {}
 
   async createMessage(userId: string, dto: CreateMessageDto) {
-    const parsed = this.parser.parse(dto.rawText);
+    const parsed = await this.parser.parseForUser(userId, dto.rawText);
     if (parsed.length === 0) {
       throw new BadRequestException(
-        'Не удалось распознать записи. Используйте формат: "Узнал:" и строки с "- пункт".',
+        'Не удалось распознать записи. Используйте формат: "Узнал:" или "lo-fi:" и строки с "- пункт".',
       );
     }
 
@@ -41,7 +47,7 @@ export class EntriesService {
       await tx.entry.createMany({
         data: parsed.map((entry) => ({
           content: entry.content,
-          category: entry.category,
+          tagId: entry.tagId,
           messageId: message.id,
           userId,
           isPublic,
@@ -50,7 +56,12 @@ export class EntriesService {
 
       return tx.message.findUniqueOrThrow({
         where: { id: message.id },
-        include: { entries: { orderBy: { createdAt: 'asc' } } },
+        include: {
+          entries: {
+            orderBy: { createdAt: 'asc' },
+            include: { tag: true },
+          },
+        },
       });
     });
   }
@@ -58,8 +69,14 @@ export class EntriesService {
   async findEntries(userId: string, query: QueryEntriesDto) {
     const where: Prisma.EntryWhereInput = { userId };
 
-    if (query.category) {
-      where.category = query.category;
+    if (query.tagId) {
+      where.tagId = query.tagId;
+    }
+
+    if (query.visibility === 'public') {
+      where.isPublic = true;
+    } else if (query.visibility === 'private') {
+      where.isPublic = false;
     }
 
     if (query.from || query.to) {
@@ -75,7 +92,7 @@ export class EntriesService {
     return this.prisma.entry.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      include: { message: true },
+      include: entryInclude,
     });
   }
 
@@ -108,6 +125,7 @@ export class EntriesService {
         createdAt: { gte: from, lte: to },
       },
       orderBy: { createdAt: 'asc' },
+      include: { tag: true },
     });
 
     const days = new Map<string, typeof entries>();
@@ -142,7 +160,7 @@ export class EntriesService {
     return this.prisma.entry.update({
       where: { id },
       data: { usefulVotes: { increment: 1 } },
-      include: { user: { select: publicUserSelect } },
+      include: entryInclude,
     });
   }
 
@@ -151,15 +169,19 @@ export class EntriesService {
       where: { userId },
       orderBy: [{ usefulVotes: 'desc' }, { createdAt: 'desc' }],
       take: limit,
+      include: { tag: true },
     });
   }
 
-  async getPublicBoard(limit = 50) {
+  async getPublicBoard(limit = 50, tagId?: string) {
     return this.prisma.entry.findMany({
-      where: { isPublic: true },
+      where: {
+        isPublic: true,
+        ...(tagId ? { tagId } : {}),
+      },
       orderBy: [{ usefulVotes: 'desc' }, { createdAt: 'desc' }],
       take: limit,
-      include: { user: { select: publicUserSelect } },
+      include: entryInclude,
     });
   }
 
@@ -168,7 +190,10 @@ export class EntriesService {
       where: { userId },
       orderBy: { createdAt: 'desc' },
       include: {
-        entries: { orderBy: { createdAt: 'asc' } },
+        entries: {
+          orderBy: { createdAt: 'asc' },
+          include: { tag: true },
+        },
       },
     });
   }
@@ -184,15 +209,8 @@ export class EntriesService {
     return this.prisma.entry.update({
       where: { id },
       data: { isPublic },
+      include: { tag: true },
     });
-  }
-
-  getCategories() {
-    return [
-      { key: EntryCategory.LEARNED, label: 'Узнал' },
-      { key: EntryCategory.REMEMBERED, label: 'Вспомнил' },
-      { key: EntryCategory.TODO, label: 'Сделать' },
-    ];
   }
 }
 

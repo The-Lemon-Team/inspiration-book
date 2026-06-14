@@ -1,25 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { EntryCategory } from '@prisma/client';
+import { TagsService } from '../tags/tags.service';
 
 export interface ParsedEntry {
   content: string;
-  category: EntryCategory;
+  tagName: string;
 }
-
-const CATEGORY_MAP: Record<string, EntryCategory> = {
-  узнал: EntryCategory.LEARNED,
-  learned: EntryCategory.LEARNED,
-  вспомнил: EntryCategory.REMEMBERED,
-  remembered: EntryCategory.REMEMBERED,
-  сделать: EntryCategory.TODO,
-  todo: EntryCategory.TODO,
-};
 
 @Injectable()
 export class EntryParserService {
-  parse(rawText: string): ParsedEntry[] {
+  constructor(private readonly tagsService: TagsService) {}
+
+  async parseForUser(userId: string, rawText: string) {
     const lines = rawText.split(/\r?\n/);
-    let currentCategory: EntryCategory | null = null;
+    let currentTagName: string | null = null;
     const entries: ParsedEntry[] = [];
 
     for (const line of lines) {
@@ -28,30 +21,41 @@ export class EntryParserService {
         continue;
       }
 
-      const categoryMatch = trimmed.match(/^([^:]+):\s*$/);
-      if (categoryMatch) {
-        const key = categoryMatch[1].trim().toLowerCase();
-        currentCategory = CATEGORY_MAP[key] ?? null;
+      const tagHeaderMatch = trimmed.match(/^([^:]+):\s*$/);
+      if (tagHeaderMatch) {
+        currentTagName = tagHeaderMatch[1].trim();
         continue;
       }
 
       const bulletMatch = trimmed.match(/^[-•*]\s+(.+)$/);
-      if (bulletMatch && currentCategory) {
+      if (bulletMatch && currentTagName) {
         entries.push({
           content: bulletMatch[1].trim(),
-          category: currentCategory,
+          tagName: currentTagName,
         });
         continue;
       }
 
-      if (currentCategory) {
+      if (currentTagName) {
         entries.push({
           content: trimmed,
-          category: currentCategory,
+          tagName: currentTagName,
         });
       }
     }
 
-    return entries;
+    const resolved = [];
+    for (const entry of entries) {
+      const tag = await this.tagsService.findOrCreateByHeader(
+        userId,
+        entry.tagName,
+      );
+      if (!tag) {
+        continue;
+      }
+      resolved.push({ content: entry.content, tagId: tag.id });
+    }
+
+    return resolved;
   }
 }

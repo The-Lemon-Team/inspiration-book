@@ -6,12 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum EntryCategory {
-  LEARNED
-  REMEMBERED
-  TODO
-}
-
 model User {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -20,6 +14,22 @@ model User {
   createdAt    DateTime  @default(now())
   messages     Message[]
   entries      Entry[]
+  tags         Tag[]
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String
+  color     String   @default("#6b7280")
+  isDefault Boolean  @default(false)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries   Entry[]
+  createdAt DateTime @default(now())
+
+  @@unique([userId, slug])
+  @@index([userId])
 }
 
 model Message {
@@ -35,21 +45,22 @@ model Message {
 }
 
 model Entry {
-  id          String        @id @default(cuid())
+  id          String   @id @default(cuid())
   content     String
-  category    EntryCategory
-  usefulVotes Int           @default(0)
-  completed   Boolean       @default(false)
-  isPublic    Boolean       @default(false)
-  createdAt   DateTime      @default(now())
+  usefulVotes Int      @default(0)
+  completed   Boolean  @default(false)
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
   messageId   String?
-  message     Message?      @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  message     Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
   userId      String
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagId       String
+  tag         Tag      @relation(fields: [tagId], references: [id], onDelete: Restrict)
 
-  @@index([category])
   @@index([createdAt])
   @@index([usefulVotes])
   @@index([userId])
   @@index([isPublic])
+  @@index([tagId])
 }
