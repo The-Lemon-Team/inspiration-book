@@ -15,7 +15,18 @@ export type GenUiImageBlock = {
   alt?: string;
 };
 
-export type GenUiBlock = GenUiNoteBlock | GenUiLinkBlock | GenUiImageBlock;
+export type GenUiYoutubeBlock = {
+  type: 'youtube';
+  url: string;
+  videoId: string;
+  title?: string;
+};
+
+export type GenUiBlock =
+  | GenUiNoteBlock
+  | GenUiLinkBlock
+  | GenUiImageBlock
+  | GenUiYoutubeBlock;
 
 export type GenUiTaggedSection = {
   tag: string;

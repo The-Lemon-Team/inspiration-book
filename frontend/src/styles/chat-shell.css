@@ -212,6 +212,21 @@
   cursor: not-allowed;
 }
 
+.chat-message__body .genui-image {
+  --genui-outline: color-mix(in srgb, var(--color-on-primary) 20%, transparent);
+}
+
+.chat-message__body .genui-youtube {
+  --genui-outline: color-mix(in srgb, var(--color-on-primary) 20%, transparent);
+  --genui-surface: color-mix(in srgb, var(--color-on-primary) 6%, var(--color-primary));
+  --genui-muted: color-mix(in srgb, var(--color-on-primary) 70%, transparent);
+  color: var(--color-on-primary);
+}
+
+.chat-message__body .genui-youtube__title {
+  color: var(--color-on-primary);
+}
+
 .chat-composer__public {
   margin-top: 0.15rem;
 }
@@ -310,4 +325,111 @@
 .telegram-shell__main > * {
   flex: 1;
   min-height: 0;
+}
+
+/* Content templates */
+.chat-templates {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.chat-templates__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.chat-templates__chip {
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 0.2rem 0.55rem;
+  font: inherit;
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.chat-templates__chip--active {
+  border-color: var(--chip-color);
+}
+
+.template-form {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-container-lowest);
+}
+
+.template-form__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.template-form__title {
+  margin: 0;
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+
+.template-form__hint {
+  margin: 0.2rem 0 0;
+  font-size: var(--text-caption);
+  color: var(--color-on-surface-variant);
+}
+
+.template-form__close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-on-surface-variant);
+  padding: 0.15rem;
+}
+
+.template-form__field {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.template-form__label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+}
+
+.template-form__yt-icon {
+  font-size: 1rem;
+  color: #ff0000;
+}
+
+.template-form__input {
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.65rem;
+  font: inherit;
+  font-size: var(--text-caption);
+  background: var(--color-surface);
+}
+
+.template-form__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.template-form__preview-label {
+  margin: 0;
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+}
+
+.template-form__submit {
+  width: 100%;
 }

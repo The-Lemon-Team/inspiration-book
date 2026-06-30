@@ -3,6 +3,7 @@ import type { GenUiBlock } from '@inspiration-book/genui';
 import GenUiImage from './GenUiImage.vue';
 import GenUiLinkCard from './GenUiLinkCard.vue';
 import GenUiNote from './GenUiNote.vue';
+import GenUiYoutubeCard from './GenUiYoutubeCard.vue';
 
 defineProps<{
   blocks: GenUiBlock[];
@@ -22,6 +23,12 @@ defineProps<{
         v-else-if="block.type === 'image'"
         :url="block.url"
         :alt="block.alt"
+      />
+      <GenUiYoutubeCard
+        v-else-if="block.type === 'youtube'"
+        :url="block.url"
+        :video-id="block.videoId"
+        :title="block.title"
       />
     </template>
   </div>

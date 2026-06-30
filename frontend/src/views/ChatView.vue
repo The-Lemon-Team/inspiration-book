@@ -1,18 +1,15 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue';
 import { api } from '@/api/client';
-import { tagsApi } from '@/api/tags';
 import ChatComposer from '@/components/chat/ChatComposer.vue';
+import ChatContentTemplates from '@/components/chat/ChatContentTemplates.vue';
 import ChatMessageBubble from '@/components/chat/ChatMessageBubble.vue';
-import MultiTagSelector from '@/components/MultiTagSelector.vue';
 import { useShellMode } from '@/composables/useShellMode';
-import type { Message, Tag } from '@/types';
-import { insertTagBlock } from '@/utils/insert-tag-block';
+import type { Message } from '@/types';
 
 const { isDesktopShell } = useShellMode();
 
 const messages = ref<Message[]>([]);
-const userTags = ref<Tag[]>([]);
 const draft = ref('');
 const isPublic = ref(false);
 const loading = ref(false);
@@ -31,22 +28,8 @@ async function loadMessages() {
   scrollToLatest();
 }
 
-async function loadTags() {
-  try {
-    userTags.value = await tagsApi.list();
-  } catch {
-    userTags.value = [];
-  }
-}
-
-function insertTag(tagName: string) {
-  const { text } = insertTagBlock(
-    draft.value,
-    tagName,
-    draft.value.length,
-    draft.value.length,
-  );
-  draft.value = text;
+function applyTemplate(text: string) {
+  draft.value = draft.value.trim() ? `${draft.value.trim()}\n\n${text}` : text;
 }
 
 async function sendMessage() {
@@ -60,7 +43,6 @@ async function sendMessage() {
     draft.value = '';
     isPublic.value = false;
     await loadMessages();
-    await loadTags();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось отправить';
   } finally {
@@ -70,7 +52,7 @@ async function sendMessage() {
 
 onMounted(async () => {
   try {
-    await Promise.all([loadMessages(), loadTags()]);
+    await loadMessages();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось загрузить сообщения';
   }
@@ -83,7 +65,7 @@ onMounted(async () => {
       <div>
         <h2 class="chat-page__title">Чат</h2>
         <p v-if="!isDesktopShell" class="caption">
-          Пишите блоками с тегами — Узнал, lo-fi, музыка, что угодно
+          Пишите заметки, ссылки и картинки — теги в заголовках по желанию
         </p>
         <p v-else class="chat-page__status">
           <span class="chat-page__status-dot" />
@@ -107,11 +89,7 @@ onMounted(async () => {
     </div>
 
     <footer class="chat-page__footer">
-      <MultiTagSelector
-        :draft="draft"
-        :user-tags="userTags"
-        @insert="insertTag"
-      />
+      <ChatContentTemplates @apply="applyTemplate" />
       <ChatComposer
         v-model:draft="draft"
         v-model:is-public="isPublic"

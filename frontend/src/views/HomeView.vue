@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { api } from '@/api/client';
 import { tagsApi } from '@/api/tags';
 import EntryCard from '@/components/EntryCard.vue';
+import { uiVisibleTags } from '@/constants/tags-ui';
 import type { Entry, Tag } from '@/types';
 
 const auth = useAuthStore();
 const entries = ref<Entry[]>([]);
 const tags = ref<Tag[]>([]);
+const filterTags = computed(() => uiVisibleTags(tags.value));
 const activeTagId = ref('');
 const loading = ref(true);
 const error = ref('');
@@ -58,7 +60,7 @@ onMounted(async () => {
       <p class="caption">Полезные заметки нашего сообщества</p>
     </header>
 
-    <div v-if="tags.length && !error" class="filter-row">
+    <div v-if="filterTags.length && !error" class="filter-row">
       <button
         class="filter-chip"
         :class="{ active: !activeTagId }"
@@ -67,7 +69,7 @@ onMounted(async () => {
         все
       </button>
       <button
-        v-for="tag in tags"
+        v-for="tag in filterTags"
         :key="tag.id"
         class="filter-chip"
         :class="{ active: activeTagId === tag.id }"

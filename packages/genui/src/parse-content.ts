@@ -1,4 +1,5 @@
 import type { GenUiBlock, GenUiTaggedSection } from './types';
+import { isYoutubeUrl, parseYoutubeMarker } from './youtube';
 
 const URL_RE = /^https?:\/\/\S+$/i;
 const IMAGE_RE = /^!\[([^\]]*)\]\(([^)]+)\)$/;
@@ -9,12 +10,24 @@ export function parseInlineContent(content: string): GenUiBlock[] {
   const trimmed = content.trim();
   if (!trimmed) return [];
 
+  const youtube = parseYoutubeMarker(trimmed);
+  if (youtube) {
+    return [
+      {
+        type: 'youtube',
+        url: youtube.url,
+        videoId: youtube.videoId,
+        title: youtube.title,
+      },
+    ];
+  }
+
   const imageMatch = trimmed.match(IMAGE_RE);
   if (imageMatch) {
     return [{ type: 'image', url: imageMatch[2], alt: imageMatch[1] || undefined }];
   }
 
-  if (URL_RE.test(trimmed)) {
+  if (URL_RE.test(trimmed) && !isYoutubeUrl(trimmed)) {
     return [{ type: 'link', url: trimmed, label: trimmed }];
   }
 
@@ -22,6 +35,20 @@ export function parseInlineContent(content: string): GenUiBlock[] {
   if (urlInText && urlInText.index !== undefined) {
     const before = trimmed.slice(0, urlInText.index).trim();
     const url = urlInText[1];
+    if (isYoutubeUrl(url)) {
+      const parsed = parseYoutubeMarker(url);
+      if (parsed) {
+        const blocks: GenUiBlock[] = [];
+        if (before) blocks.push({ type: 'note', text: before });
+        blocks.push({
+          type: 'youtube',
+          url: parsed.url,
+          videoId: parsed.videoId,
+          title: parsed.title,
+        });
+        return blocks;
+      }
+    }
     const after = trimmed.slice(urlInText.index + url.length).trim();
     const blocks: GenUiBlock[] = [];
     if (before) blocks.push({ type: 'note', text: before });

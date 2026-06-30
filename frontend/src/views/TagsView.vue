@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { tagsApi } from '@/api/tags';
 import TagGroupCard from '@/components/TagGroupCard.vue';
+import { uiVisibleTags } from '@/constants/tags-ui';
 import type { Tag } from '@/types';
 
 const router = useRouter();
@@ -15,9 +16,10 @@ const creating = ref(false);
 const showCreate = ref(false);
 
 const filtered = computed(() => {
+  const visible = uiVisibleTags(tags.value);
   const q = search.value.trim().toLowerCase();
-  if (!q) return tags.value;
-  return tags.value.filter((tag) => tag.name.toLowerCase().includes(q));
+  if (!q) return visible;
+  return visible.filter((tag) => tag.name.toLowerCase().includes(q));
 });
 
 async function loadTags() {

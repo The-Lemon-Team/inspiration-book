@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { api } from '@/api/client';
 import { tagsApi } from '@/api/tags';
 import EntryCard from '@/components/EntryCard.vue';
+import { uiVisibleTags } from '@/constants/tags-ui';
 import type { Tag, TimelineDay } from '@/types';
 
 const route = useRoute();
 const timeline = ref<TimelineDay[]>([]);
 const tags = ref<Tag[]>([]);
+const filterTags = computed(() => uiVisibleTags(tags.value));
 const tagId = ref('');
 const visibility = ref<'all' | 'public' | 'private'>('all');
 const loading = ref(true);
@@ -86,7 +88,7 @@ watch(
         все теги
       </button>
       <button
-        v-for="tag in tags"
+        v-for="tag in filterTags"
         :key="tag.id"
         class="filter-chip"
         :class="{ active: tagId === tag.id }"
