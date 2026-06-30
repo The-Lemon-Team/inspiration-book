@@ -1,4 +1,4 @@
-import { serializeYoutubeMarker } from '@inspiration-book/genui';
+import { serializeYoutubeMarker } from '@inspiration-book/blocks';
 import type { ContentTemplate } from '@/constants/content-templates';
 
 export interface TemplateFormData {

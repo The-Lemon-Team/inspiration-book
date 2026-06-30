@@ -2,13 +2,14 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'node:url';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  base: mode === 'electron' ? './' : '/',
   plugins: [vue()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      '@inspiration-book/genui': fileURLToPath(
-        new URL('../packages/genui/src', import.meta.url),
+      '@inspiration-book/blocks': fileURLToPath(
+        new URL('../packages/blocks/src', import.meta.url),
       ),
     },
   },
@@ -25,4 +26,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

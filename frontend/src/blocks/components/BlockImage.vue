@@ -6,8 +6,8 @@ defineProps<{
 </script>
 
 <template>
-  <figure class="genui-image">
+  <figure class="block-image">
     <img :src="url" :alt="alt || 'Изображение'" loading="lazy" />
-    <figcaption v-if="alt" class="genui-image__caption">{{ alt }}</figcaption>
+    <figcaption v-if="alt" class="block-image__caption">{{ alt }}</figcaption>
   </figure>
 </template>

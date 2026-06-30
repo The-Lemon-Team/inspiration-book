@@ -11,6 +11,22 @@ export interface ContentTemplate {
   urlPlaceholder: string;
 }
 
+export function formatTemplateTagLabel(label: string): string {
+  const trimmed = label.trim();
+  if (!trimmed) return 'Музыка';
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+export function templateForMusicTag(tag: string): ContentTemplate {
+  const normalized = tag.trim().toLowerCase();
+  const found = CONTENT_TEMPLATES.find(
+    (t) =>
+      formatTemplateTagLabel(t.chipLabel).toLowerCase() === normalized ||
+      t.chipLabel.toLowerCase() === normalized,
+  );
+  return found ?? CONTENT_TEMPLATES[0];
+}
+
 export const CONTENT_TEMPLATES: ContentTemplate[] = [
   {
     id: 'music-youtube',

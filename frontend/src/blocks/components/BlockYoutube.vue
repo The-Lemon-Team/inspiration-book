@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { youtubeThumbnailUrl, youtubeWatchUrl } from '@inspiration-book/genui';
+import { youtubeThumbnailUrl, youtubeWatchUrl } from '@inspiration-book/blocks';
 
 const props = defineProps<{
   url: string;
@@ -23,26 +23,21 @@ onMounted(async () => {
       if (data.title) fetchedTitle.value = data.title;
     }
   } catch {
-    // oEmbed недоступен — остаётся заглушка
+    // fallback title
   }
 });
 </script>
 
 <template>
-  <a
-    class="genui-youtube"
-    :href="watchUrl"
-    target="_blank"
-    rel="noopener noreferrer"
-  >
-    <div class="genui-youtube__thumb-wrap">
-      <img :src="thumb" alt="" class="genui-youtube__thumb" loading="lazy" />
-      <span class="genui-youtube__play material-symbols-outlined">play_circle</span>
+  <a class="block-youtube" :href="watchUrl" target="_blank" rel="noopener noreferrer">
+    <div class="block-youtube__thumb-wrap">
+      <img :src="thumb" alt="" class="block-youtube__thumb" loading="lazy" />
+      <span class="block-youtube__play material-symbols-outlined">play_circle</span>
     </div>
-    <div class="genui-youtube__meta">
-      <span class="genui-youtube__badge">YouTube</span>
-      <span class="genui-youtube__title">{{ displayTitle }}</span>
-      <span class="genui-youtube__host">youtube.com</span>
+    <div class="block-youtube__meta">
+      <span class="block-youtube__badge">YouTube</span>
+      <span class="block-youtube__title">{{ displayTitle }}</span>
+      <span class="block-youtube__host">youtube.com</span>
     </div>
   </a>
 </template>

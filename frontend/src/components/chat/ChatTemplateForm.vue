@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import {
   extractYoutubeVideoId,
   youtubeThumbnailUrl,
-} from '@inspiration-book/genui';
+} from '@inspiration-book/blocks';
 import type { ContentTemplate } from '@/constants/content-templates';
 import { buildMessageFromTemplate } from '@/utils/build-template-message';
 
@@ -13,6 +13,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   apply: [text: string];
+  applyLink: [data: { url: string; note: string }];
   close: [];
 }>();
 
@@ -59,7 +60,14 @@ function submit() {
       title: title.value,
       note: note.value,
     });
-    emit('apply', text);
+    if (props.template.form === 'link') {
+      emit('applyLink', {
+        url: url.value.trim(),
+        note: note.value.trim() || title.value.trim(),
+      });
+    } else {
+      emit('apply', text);
+    }
   } catch (e) {
     formError.value = e instanceof Error ? e.message : 'Не удалось собрать сообщение';
   }
@@ -125,14 +133,14 @@ function submit() {
 
     <div v-if="previewThumb" class="template-form__preview">
       <p class="template-form__preview-label">Превью в чате</p>
-      <div class="genui-youtube genui-youtube--preview">
-        <div class="genui-youtube__thumb-wrap">
-          <img :src="previewThumb" alt="" class="genui-youtube__thumb" />
-          <span class="genui-youtube__play material-symbols-outlined">play_circle</span>
+      <div class="block-youtube block-youtube--preview">
+        <div class="block-youtube__thumb-wrap">
+          <img :src="previewThumb" alt="" class="block-youtube__thumb" />
+          <span class="block-youtube__play material-symbols-outlined">play_circle</span>
         </div>
-        <div class="genui-youtube__meta">
-          <span class="genui-youtube__badge">YouTube</span>
-          <span class="genui-youtube__title">{{ title || 'Видео с YouTube' }}</span>
+        <div class="block-youtube__meta">
+          <span class="block-youtube__badge">YouTube</span>
+          <span class="block-youtube__title">{{ title || 'Видео с YouTube' }}</span>
         </div>
       </div>
     </div>
