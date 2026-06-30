@@ -4,6 +4,7 @@ import type { AuthUser } from './auth-user.interface';
 import { CurrentUser } from './current-user.decorator';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateEmailDto } from './dto/update-email.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -20,6 +21,16 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post('refresh')
+  refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refresh(dto.refreshToken);
+  }
+
+  @Post('logout')
+  logout(@Body() dto: RefreshTokenDto) {
+    return this.authService.logout(dto.refreshToken);
   }
 
   @Get('me')

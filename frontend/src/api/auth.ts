@@ -35,4 +35,11 @@ export const authApi = {
       body: JSON.stringify({ email, currentPassword }),
     });
   },
+
+  logout(refreshToken: string) {
+    return request<{ ok: boolean }>(`${API_BASE}/logout`, {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    });
+  },
 };

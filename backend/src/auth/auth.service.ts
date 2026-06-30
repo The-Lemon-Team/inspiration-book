@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { TagsService } from '../tags/tags.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -13,6 +14,8 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateEmailDto } from './dto/update-email.dto';
 import { AuthUser } from './auth-user.interface';
+
+const DEFAULT_REFRESH_DAYS = 90;
 
 @Injectable()
 export class AuthService {
@@ -61,6 +64,31 @@ export class AuthService {
     return this.buildAuthResponse(user);
   }
 
+  async refresh(refreshToken: string) {
+    const tokenHash = this.hashToken(refreshToken);
+    const stored = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
+    });
+
+    if (!stored || stored.expiresAt < new Date()) {
+      if (stored) {
+        await this.prisma.refreshToken.delete({ where: { id: stored.id } });
+      }
+      throw new UnauthorizedException('Сессия истекла, войдите снова');
+    }
+
+    await this.prisma.refreshToken.delete({ where: { id: stored.id } });
+
+    return this.buildAuthResponse(stored.user);
+  }
+
+  async logout(refreshToken: string) {
+    const tokenHash = this.hashToken(refreshToken);
+    await this.prisma.refreshToken.deleteMany({ where: { tokenHash } });
+    return { ok: true };
+  }
+
   async validateUser(userId: string): Promise<AuthUser | null> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
@@ -94,6 +122,8 @@ export class AuthService {
       data: { passwordHash },
     });
 
+    await this.prisma.refreshToken.deleteMany({ where: { userId } });
+
     return { ok: true };
   }
 
@@ -126,16 +156,43 @@ export class AuthService {
     return this.toAuthUser(updated);
   }
 
-  private buildAuthResponse(user: {
+  private async buildAuthResponse(user: {
     id: string;
     email: string;
     name: string | null;
   }) {
     const payload = { sub: user.id, email: user.email };
+    const refreshToken = await this.createRefreshToken(user.id);
+
     return {
       accessToken: this.jwtService.sign(payload),
+      refreshToken,
       user: this.toAuthUser(user),
     };
+  }
+
+  private async createRefreshToken(userId: string) {
+    const refreshDays = this.config.get<number>(
+      'JWT_REFRESH_EXPIRES_DAYS',
+      DEFAULT_REFRESH_DAYS,
+    );
+    const token = randomBytes(48).toString('base64url');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + refreshDays);
+
+    await this.prisma.refreshToken.create({
+      data: {
+        tokenHash: this.hashToken(token),
+        userId,
+        expiresAt,
+      },
+    });
+
+    return token;
+  }
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 
   private toAuthUser(user: {

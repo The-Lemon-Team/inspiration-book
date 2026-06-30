@@ -10,14 +10,14 @@ const auth = useAuthStore();
 const router = useRouter();
 const { isDesktopShell } = useShellMode();
 
-function logout() {
-  auth.logout();
+async function logout() {
+  await auth.logout();
   router.push('/');
 }
 </script>
 
 <template>
-  <TelegramShell v-if="isDesktopShell && auth.isAuthenticated">
+  <TelegramShell v-if="isDesktopShell && auth.isAuthenticated" @logout="logout">
     <RouterView />
   </TelegramShell>
 

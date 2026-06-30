@@ -1,7 +1,13 @@
 import { app, BrowserWindow, shell } from 'electron';
 import { join } from 'path';
+import { registerAuthStorageHandlers } from './auth-storage';
 
+const isDev = !app.isPackaged;
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+
+function frontendIndexPath() {
+  return join(process.resourcesPath, 'frontend', 'index.html');
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -18,7 +24,11 @@ function createWindow() {
     },
   });
 
-  win.loadURL(`${FRONTEND_URL}/chat`);
+  if (isDev) {
+    win.loadURL(`${FRONTEND_URL}/chat`);
+  } else {
+    win.loadFile(frontendIndexPath(), { hash: '/chat' });
+  }
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -27,6 +37,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  registerAuthStorageHandlers();
   createWindow();
 
   app.on('activate', () => {

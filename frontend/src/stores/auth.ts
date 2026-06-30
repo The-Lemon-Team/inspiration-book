@@ -1,22 +1,55 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { authApi } from '@/api/auth';
-import { clearToken, getToken, setToken } from '@/api/http';
+import {
+  clearToken,
+  getRefreshToken,
+  getToken,
+  initTokenStorage,
+  refreshAccessToken,
+  setTokens,
+} from '@/api/http';
 import type { User } from '@/types';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
   const loading = ref(false);
+  const authReady = ref(false);
+
+  let initPromise: Promise<void> | null = null;
 
   const isAuthenticated = computed(() => !!user.value);
 
   async function init() {
-    if (!getToken()) return;
+    if (initPromise) {
+      await initPromise;
+      return;
+    }
+
+    initPromise = (async () => {
+      await initTokenStorage();
+
+      if (!getToken() && getRefreshToken()) {
+        const refreshed = await refreshAccessToken();
+        if (!refreshed) {
+          await clearToken();
+          return;
+        }
+      }
+
+      if (!getToken()) return;
+
+      try {
+        user.value = await authApi.me();
+      } catch {
+        user.value = null;
+      }
+    })();
+
     try {
-      user.value = await authApi.me();
-    } catch {
-      clearToken();
-      user.value = null;
+      await initPromise;
+    } finally {
+      authReady.value = true;
     }
   }
 
@@ -24,7 +57,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true;
     try {
       const response = await authApi.register(email, password, name);
-      setToken(response.accessToken);
+      await setTokens(response.accessToken, response.refreshToken);
       user.value = response.user;
       return response;
     } finally {
@@ -36,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true;
     try {
       const response = await authApi.login(email, password);
-      setToken(response.accessToken);
+      await setTokens(response.accessToken, response.refreshToken);
       user.value = response.user;
       return response;
     } finally {
@@ -44,8 +77,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout() {
-    clearToken();
+  async function logout() {
+    const refresh = getRefreshToken();
+    if (refresh) {
+      try {
+        await authApi.logout(refresh);
+      } catch {
+        // ignore — local session is cleared regardless
+      }
+    }
+    await clearToken();
     user.value = null;
   }
 
@@ -71,6 +112,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user,
     loading,
+    authReady,
     isAuthenticated,
     init,
     register,
