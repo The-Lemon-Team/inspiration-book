@@ -10,15 +10,22 @@ import { request } from './http';
 const API_BASE = '/api/entries';
 
 export const api = {
-  createMessage(rawText: string, content?: MessageDocument) {
+  createMessage(rawText: string, content?: MessageDocument, chatId?: string) {
     return request<Message>(`${API_BASE}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ rawText, content }),
+      body: JSON.stringify({ rawText, content, chatId }),
     });
   },
 
-  getMessages() {
-    return request<Message[]>(`${API_BASE}/messages`);
+  getMessages(chatId?: string) {
+    const query = chatId ? `?chatId=${encodeURIComponent(chatId)}` : '';
+    return request<Message[]>(`${API_BASE}/messages${query}`);
+  },
+
+  shareMessageToGeneral(messageId: string) {
+    return request<Message>(`${API_BASE}/messages/${messageId}/share-to-general`, {
+      method: 'POST',
+    });
   },
 
   getPublicBoard(limit = 50, tagId?: string) {

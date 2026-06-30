@@ -6,16 +6,23 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ChatKind {
+  GENERAL
+  REGULAR
+}
+
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  name          String?
-  passwordHash  String
-  createdAt     DateTime       @default(now())
-  messages      Message[]
-  entries       Entry[]
-  tags          Tag[]
-  refreshTokens RefreshToken[]
+  id              String           @id @default(cuid())
+  email           String           @unique
+  name            String?
+  passwordHash    String
+  createdAt       DateTime         @default(now())
+  messages        Message[]
+  entries         Entry[]
+  tags            Tag[]
+  refreshTokens   RefreshToken[]
+  chats           Chat[]
+  chatCollections ChatCollection[]
 }
 
 model RefreshToken {
@@ -28,6 +35,38 @@ model RefreshToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+model ChatCollection {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chats     Chat[]
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, slug])
+  @@index([userId])
+}
+
+model Chat {
+  id           String          @id @default(cuid())
+  name         String
+  slug         String
+  kind         ChatKind        @default(REGULAR)
+  collectionId String?
+  collection   ChatCollection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages     Message[]
+  sortOrder    Int             @default(0)
+  createdAt    DateTime        @default(now())
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@index([collectionId])
 }
 
 model Tag {
@@ -46,16 +85,23 @@ model Tag {
 }
 
 model Message {
-  id        String   @id @default(cuid())
-  rawText   String
-  content   Json?
-  createdAt DateTime @default(now())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entries   Entry[]
+  id              String    @id @default(cuid())
+  rawText         String
+  content         Json?
+  createdAt       DateTime  @default(now())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatId          String
+  chat            Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  originMessageId String?
+  originMessage   Message?  @relation("MessageCrossPost", fields: [originMessageId], references: [id], onDelete: SetNull)
+  crossPosts      Message[] @relation("MessageCrossPost")
+  entries         Entry[]
 
   @@index([createdAt])
   @@index([userId])
+  @@index([chatId])
+  @@index([originMessageId])
 }
 
 model Entry {

@@ -1,33 +1,25 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
-import { tagsApi } from '@/api/tags';
-import { uiVisibleTags } from '@/constants/tags-ui';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-import type { Tag, User } from '@/types';
+import { useChatsStore } from '@/stores/chats';
+import type { Chat, User } from '@/types';
 
 defineEmits<{ logout: [] }>();
 
 const auth = useAuthStore();
+const chats = useChatsStore();
 const route = useRoute();
+const router = useRouter();
 
-const tags = ref<Tag[]>([]);
-const tagsLoading = ref(true);
+const creating = ref(false);
 
 const navItems = [
-  { to: '/chat', icon: 'chat', label: 'Чат' },
-  { to: '/tags', icon: 'folder', label: 'Группы' },
+  { to: '/filters', icon: 'filter_alt', label: 'Фильтры' },
   { to: '/timeline', icon: 'view_timeline', label: 'Лента' },
-  { to: '/', icon: 'grid_view', label: 'Борд' },
   { to: '/calendar', icon: 'calendar_month', label: 'Календарь' },
   { to: '/settings', icon: 'settings', label: 'Настройки' },
 ];
-
-const sidebarTags = computed(() =>
-  [...uiVisibleTags(tags.value)]
-    .sort((a, b) => (b.entryCount ?? 0) - (a.entryCount ?? 0))
-    .slice(0, 8),
-);
 
 const displayName = computed(
   () => auth.user?.name || auth.user?.email?.split('@')[0] || 'Пользователь',
@@ -49,33 +41,136 @@ function isNavActive(path: string) {
   return route.path === path;
 }
 
-function isTagActive(tagId: string) {
-  return route.path === '/timeline' && route.query.tagId === tagId;
+function chatRoute(chat: Chat) {
+  return chat.kind === 'GENERAL'
+    ? { name: 'chat-room', params: { chatId: 'general' } }
+    : { name: 'chat-room', params: { chatId: chat.id } };
 }
 
-async function loadTags() {
-  tagsLoading.value = true;
+function isChatActive(chat: Chat) {
+  if (route.name !== 'chat-room') return false;
+  const param = route.params.chatId as string;
+  if (chat.kind === 'GENERAL') {
+    return param === 'general' || param === chat.id;
+  }
+  return param === chat.id;
+}
+
+async function onCreateCollection() {
+  const name = window.prompt('Название журнала или темы (например, «Лето 2026»)');
+  if (!name?.trim()) return;
+  creating.value = true;
   try {
-    tags.value = await tagsApi.list();
-  } catch {
-    tags.value = [];
+    await chats.createCollection(name.trim());
   } finally {
-    tagsLoading.value = false;
+    creating.value = false;
   }
 }
 
-onMounted(loadTags);
+async function onCreateChat(collectionId?: string) {
+  const name = window.prompt('Название чата');
+  if (!name?.trim()) return;
+  creating.value = true;
+  try {
+    const chat = await chats.createChat(name.trim(), collectionId);
+    await router.push(chatRoute(chat));
+  } finally {
+    creating.value = false;
+  }
+}
+
+onMounted(() => chats.load());
 </script>
 
 <template>
   <div class="telegram-shell">
     <aside class="telegram-sidebar">
-      <div class="telegram-sidebar__brand">
-        <div class="telegram-sidebar__logo">
-          <span class="material-symbols-outlined">menu_book</span>
+      <RouterLink to="/filters" class="telegram-sidebar__brand">
+        <img src="/favicon.svg" alt="" class="telegram-sidebar__logo-img" width="32" height="32" />
+        <span class="telegram-sidebar__title">lemon party</span>
+      </RouterLink>
+
+      <section class="telegram-sidebar__chats">
+        <div class="telegram-sidebar__chats-head">
+          <h3 class="telegram-sidebar__folders-title">Чаты</h3>
+          <button
+            type="button"
+            class="telegram-sidebar__icon-btn"
+            title="Новый чат"
+            :disabled="creating"
+            @click="onCreateChat()"
+          >
+            <span class="material-symbols-outlined">add</span>
+          </button>
         </div>
-        <span class="telegram-sidebar__title">инспирация</span>
-      </div>
+
+        <ul v-if="chats.general" class="telegram-sidebar__chat-list">
+          <li>
+            <RouterLink
+              :to="chatRoute(chats.general)"
+              class="telegram-sidebar__chat"
+              :class="{ active: isChatActive(chats.general) }"
+            >
+              <span class="material-symbols-outlined telegram-sidebar__chat-icon">forum</span>
+              <span class="telegram-sidebar__folder-name">general</span>
+            </RouterLink>
+          </li>
+        </ul>
+
+        <div
+          v-for="collection in chats.collections"
+          :key="collection.id"
+          class="telegram-sidebar__collection"
+        >
+          <div class="telegram-sidebar__collection-head">
+            <span class="telegram-sidebar__collection-name">{{ collection.name }}</span>
+            <button
+              type="button"
+              class="telegram-sidebar__icon-btn"
+              title="Чат в группе"
+              :disabled="creating"
+              @click="onCreateChat(collection.id)"
+            >
+              <span class="material-symbols-outlined">add</span>
+            </button>
+          </div>
+          <ul class="telegram-sidebar__chat-list">
+            <li v-for="chat in collection.chats ?? []" :key="chat.id">
+              <RouterLink
+                :to="chatRoute(chat)"
+                class="telegram-sidebar__chat"
+                :class="{ active: isChatActive(chat) }"
+              >
+                <span class="material-symbols-outlined telegram-sidebar__chat-icon">chat</span>
+                <span class="telegram-sidebar__folder-name">{{ chat.name }}</span>
+              </RouterLink>
+            </li>
+          </ul>
+        </div>
+
+        <ul v-if="chats.standalone.length" class="telegram-sidebar__chat-list">
+          <li v-for="chat in chats.standalone" :key="chat.id">
+            <RouterLink
+              :to="chatRoute(chat)"
+              class="telegram-sidebar__chat"
+              :class="{ active: isChatActive(chat) }"
+            >
+              <span class="material-symbols-outlined telegram-sidebar__chat-icon">chat</span>
+              <span class="telegram-sidebar__folder-name">{{ chat.name }}</span>
+            </RouterLink>
+          </li>
+        </ul>
+
+        <button
+          type="button"
+          class="telegram-sidebar__new-collection"
+          :disabled="creating"
+          @click="onCreateCollection"
+        >
+          <span class="material-symbols-outlined">library_books</span>
+          Новый журнал
+        </button>
+      </section>
 
       <nav class="telegram-sidebar__nav">
         <RouterLink
@@ -94,28 +189,6 @@ onMounted(loadTags);
           <span>{{ item.label }}</span>
         </RouterLink>
       </nav>
-
-      <section v-if="sidebarTags.length > 0" class="telegram-sidebar__folders">
-        <h3 class="telegram-sidebar__folders-title">Папки контента</h3>
-        <ul class="telegram-sidebar__folder-list">
-          <li v-for="tag in sidebarTags" :key="tag.id">
-            <RouterLink
-              :to="{ name: 'timeline', query: { tagId: tag.id } }"
-              class="telegram-sidebar__folder"
-              :class="{ active: isTagActive(tag.id) }"
-            >
-              <span class="telegram-sidebar__folder-dot" :style="{ background: tag.color }" />
-              <span class="telegram-sidebar__folder-name">{{ tag.name }}</span>
-              <span v-if="tag.entryCount != null" class="telegram-sidebar__folder-count">
-                {{ tag.entryCount }}
-              </span>
-            </RouterLink>
-          </li>
-        </ul>
-      </section>
-      <p v-else-if="!tagsLoading" class="telegram-sidebar__folders-empty caption">
-        Теги появятся после первых записей в чате
-      </p>
 
       <div class="telegram-sidebar__footer">
         <div class="telegram-sidebar__profile">

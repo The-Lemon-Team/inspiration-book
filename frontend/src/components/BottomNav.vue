@@ -4,21 +4,21 @@ import { RouterLink } from 'vue-router';
 
 <template>
   <nav class="bottom-nav">
-    <RouterLink to="/" class="bottom-nav__item">
-      <span class="material-symbols-outlined">public</span>
-      <span>Борд</span>
-    </RouterLink>
-    <RouterLink to="/tags" class="bottom-nav__item">
-      <span class="material-symbols-outlined">label</span>
-      <span>Группы</span>
+    <RouterLink to="/filters" class="bottom-nav__item">
+      <span class="material-symbols-outlined">filter_alt</span>
+      <span>Фильтры</span>
     </RouterLink>
     <RouterLink to="/chat" class="bottom-nav__item">
-      <span class="material-symbols-outlined">edit_note</span>
-      <span>Чат</span>
+      <span class="material-symbols-outlined">forum</span>
+      <span>Чаты</span>
     </RouterLink>
     <RouterLink to="/timeline" class="bottom-nav__item">
       <span class="material-symbols-outlined">view_timeline</span>
       <span>Лента</span>
+    </RouterLink>
+    <RouterLink to="/settings" class="bottom-nav__item">
+      <span class="material-symbols-outlined">settings</span>
+      <span>Ещё</span>
     </RouterLink>
   </nav>
 </template>

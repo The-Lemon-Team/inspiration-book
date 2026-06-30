@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-import HomeView from '@/views/HomeView.vue';
-import TagsView from '@/views/TagsView.vue';
+import { useChatsStore } from '@/stores/chats';
+import FiltersView from '@/views/FiltersView.vue';
 import ChatView from '@/views/ChatView.vue';
 import TimelineView from '@/views/TimelineView.vue';
 import CalendarView from '@/views/CalendarView.vue';
@@ -18,17 +18,35 @@ const history =
 const router = createRouter({
   history,
   routes: [
-    { path: '/', name: 'home', component: HomeView },
-    { path: '/tags', name: 'tags', component: TagsView, meta: { requiresAuth: true } },
+    { path: '/', redirect: '/filters' },
+    { path: '/filters', name: 'filters', component: FiltersView },
+    { path: '/tags', redirect: '/filters' },
+    {
+      path: '/chat',
+      name: 'chat',
+      redirect: () => ({ name: 'chat-room', params: { chatId: 'general' } }),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/chats/:chatId',
+      name: 'chat-room',
+      component: ChatView,
+      meta: { requiresAuth: true },
+    },
     { path: '/login', name: 'login', component: LoginView, meta: { guestOnly: true } },
     { path: '/register', name: 'register', component: RegisterView, meta: { guestOnly: true } },
-    { path: '/chat', name: 'chat', component: ChatView, meta: { requiresAuth: true } },
     { path: '/timeline', name: 'timeline', component: TimelineView, meta: { requiresAuth: true } },
     { path: '/calendar', name: 'calendar', component: CalendarView, meta: { requiresAuth: true } },
     { path: '/top', name: 'top', component: TopView, meta: { requiresAuth: true } },
     { path: '/settings', name: 'settings', component: SettingsView, meta: { requiresAuth: true } },
   ],
 });
+
+async function resolveGeneralChatId() {
+  const chats = useChatsStore();
+  await chats.load();
+  return chats.general?.id ?? chats.allChats[0]?.id ?? null;
+}
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore();
@@ -39,7 +57,17 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.guestOnly && auth.isAuthenticated) {
-    return { name: 'chat' };
+    const chatId = await resolveGeneralChatId();
+    return chatId
+      ? { name: 'chat-room', params: { chatId } }
+      : { name: 'filters' };
+  }
+
+  if (to.name === 'chat-room' && to.params.chatId === 'general') {
+    const chatId = await resolveGeneralChatId();
+    if (chatId && chatId !== 'general') {
+      return { name: 'chat-room', params: { chatId }, replace: true };
+    }
   }
 });
 

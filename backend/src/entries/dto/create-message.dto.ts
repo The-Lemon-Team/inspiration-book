@@ -12,4 +12,8 @@ export class CreateMessageDto {
   @IsOptional()
   @IsBoolean()
   isPublic?: boolean;
+
+  @IsOptional()
+  @IsString()
+  chatId?: string;
 }

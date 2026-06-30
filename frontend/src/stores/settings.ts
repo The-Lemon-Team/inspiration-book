@@ -1,20 +1,20 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
-export type LogoClickTarget = 'board' | 'chat';
+export type LogoClickTarget = 'filters' | 'chat';
 
-const LOGO_TARGET_KEY = 'inspiration_logo_target';
+const LOGO_TARGET_KEY = 'lemon_logo_target';
 
 function loadLogoTarget(): LogoClickTarget {
   const stored = localStorage.getItem(LOGO_TARGET_KEY);
-  return stored === 'chat' ? 'chat' : 'board';
+  return stored === 'chat' ? 'chat' : 'filters';
 }
 
 export const useSettingsStore = defineStore('settings', () => {
   const logoClickTarget = ref<LogoClickTarget>(loadLogoTarget());
 
   const logoRoute = computed(() =>
-    logoClickTarget.value === 'chat' ? '/chat' : '/',
+    logoClickTarget.value === 'chat' ? '/chat' : '/filters',
   );
 
   function setLogoClickTarget(target: LogoClickTarget) {

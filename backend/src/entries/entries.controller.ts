@@ -46,8 +46,20 @@ export class EntriesController {
 
   @Get('messages')
   @UseGuards(JwtAuthGuard)
-  getMessages(@CurrentUser() user: AuthUser | null) {
-    return this.entriesService.getMessages(user!.id);
+  getMessages(
+    @CurrentUser() user: AuthUser | null,
+    @Query('chatId') chatId?: string,
+  ) {
+    return this.entriesService.getMessages(user!.id, chatId);
+  }
+
+  @Post('messages/:id/share-to-general')
+  @UseGuards(JwtAuthGuard)
+  shareToGeneral(
+    @CurrentUser() user: AuthUser | null,
+    @Param('id') id: string,
+  ) {
+    return this.entriesService.shareMessageToGeneral(user!.id, id);
   }
 
   @Patch('messages/:id/publish')

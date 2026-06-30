@@ -20,6 +20,35 @@ export interface AuthResponse {
   user: User;
 }
 
+export type ChatKind = 'GENERAL' | 'REGULAR';
+
+export interface Chat {
+  id: string;
+  name: string;
+  slug: string;
+  kind: ChatKind;
+  collectionId?: string | null;
+  collection?: ChatCollection | null;
+  sortOrder?: number;
+  createdAt?: string;
+}
+
+export interface ChatCollection {
+  id: string;
+  name: string;
+  slug: string;
+  sortOrder?: number;
+  createdAt?: string;
+  chats?: Chat[];
+}
+
+export interface ChatListResponse {
+  general: Chat | null;
+  collections: ChatCollection[];
+  standalone: Chat[];
+  chats: Chat[];
+}
+
 export interface Entry {
   id: string;
   content: string;
@@ -38,6 +67,9 @@ export interface Message {
   content?: MessageDocument | null;
   createdAt: string;
   user?: User;
+  chatId?: string;
+  chat?: Chat;
+  originMessageId?: string | null;
   entries: Entry[];
 }
 

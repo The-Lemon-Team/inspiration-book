@@ -85,7 +85,7 @@ async function submitPassword() {
           <span class="settings-row__label">
             <span class="settings-row__name">Клик по логотипу</span>
             <span class="settings-row__hint caption">
-              Куда переходить при нажатии на «Inspiration Book» в шапке
+              Куда переходить при нажатии на «Lemon Party» в шапке
             </span>
           </span>
           <select
@@ -93,8 +93,8 @@ async function submitPassword() {
             :value="settings.logoClickTarget"
             @change="onLogoTargetChange"
           >
-            <option value="board">Борд</option>
-            <option value="chat">Чат</option>
+            <option value="filters">Фильтры</option>
+            <option value="chat">Чаты</option>
           </select>
         </label>
       </div>

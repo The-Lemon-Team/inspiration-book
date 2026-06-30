@@ -4,8 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { ChatKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ChatsService } from '../chats/chats.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { QueryEntriesDto } from './dto/query-entries.dto';
 import { EntryParserService } from './entry-parser.service';
@@ -25,6 +26,7 @@ const entryInclude = {
 
 const messageInclude = {
   user: { select: publicUserSelect },
+  chat: true,
   entries: {
     orderBy: { createdAt: 'asc' as const },
     include: { tag: true },
@@ -36,6 +38,7 @@ export class EntriesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly parser: EntryParserService,
+    private readonly chatsService: ChatsService,
   ) {}
 
   async createMessage(userId: string, dto: CreateMessageDto) {
@@ -46,6 +49,10 @@ export class EntriesService {
       );
     }
 
+    const chat = dto.chatId
+      ? await this.chatsService.findOwnedChat(userId, dto.chatId)
+      : await this.chatsService.getGeneralChat(userId);
+
     const isPublic = dto.isPublic ?? false;
     const content = resolveMessageContent(dto.rawText, dto.content);
 
@@ -55,6 +62,7 @@ export class EntriesService {
           rawText: dto.rawText,
           content: content as unknown as Prisma.InputJsonValue,
           userId,
+          chatId: chat.id,
         },
       });
 
@@ -194,9 +202,16 @@ export class EntriesService {
     });
   }
 
-  async getMessages(userId: string) {
+  async getMessages(userId: string, chatId?: string) {
+    if (chatId) {
+      await this.chatsService.findOwnedChat(userId, chatId);
+    }
+
     return this.prisma.message.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...(chatId ? { chatId } : {}),
+      },
       orderBy: { createdAt: 'asc' },
       include: messageInclude,
     });
@@ -266,6 +281,57 @@ export class EntriesService {
     ]);
 
     return { ok: true };
+  }
+
+  async shareMessageToGeneral(userId: string, messageId: string) {
+    const source = await this.prisma.message.findFirst({
+      where: { id: messageId, userId },
+      include: { chat: true, entries: true },
+    });
+    if (!source) {
+      throw new NotFoundException('Сообщение не найдено');
+    }
+    if (source.chat.kind === ChatKind.GENERAL) {
+      throw new BadRequestException('Сообщение уже в general');
+    }
+
+    const general = await this.chatsService.getGeneralChat(userId);
+    const parsed = await this.parser.parseForUser(userId, source.rawText);
+    if (parsed.length === 0) {
+      throw new BadRequestException('Не удалось скопировать сообщение');
+    }
+
+    const content = resolveMessageContent(
+      source.rawText,
+      source.content as Record<string, unknown> | undefined,
+    );
+
+    return this.prisma.$transaction(async (tx) => {
+      const message = await tx.message.create({
+        data: {
+          rawText: source.rawText,
+          content: content as unknown as Prisma.InputJsonValue,
+          userId,
+          chatId: general.id,
+          originMessageId: source.id,
+        },
+      });
+
+      await tx.entry.createMany({
+        data: parsed.map((entry) => ({
+          content: entry.content,
+          tagId: entry.tagId,
+          messageId: message.id,
+          userId,
+          isPublic: false,
+        })),
+      });
+
+      return tx.message.findUniqueOrThrow({
+        where: { id: message.id },
+        include: messageInclude,
+      });
+    });
   }
 }
 

@@ -66,6 +66,25 @@ async function unpublish() {
   }
 }
 
+async function shareToGeneral() {
+  busy.value = true;
+  actionError.value = '';
+
+  try {
+    await api.shareMessageToGeneral(props.message.id);
+    actionError.value = '';
+    window.alert('Сообщение отправлено в general');
+  } catch (e) {
+    actionError.value = e instanceof Error ? e.message : 'Не удалось отправить в general';
+  } finally {
+    busy.value = false;
+  }
+}
+
+const canShareToGeneral = computed(
+  () => props.message.chat?.kind && props.message.chat.kind !== 'GENERAL',
+);
+
 async function removeMessage() {
   if (
     !window.confirm(
@@ -145,6 +164,17 @@ async function removeMessage() {
               Снять
             </button>
           </template>
+
+          <button
+            v-if="canShareToGeneral"
+            type="button"
+            class="chat-message__action"
+            :disabled="busy"
+            @click="shareToGeneral"
+          >
+            <span class="material-symbols-outlined">forward</span>
+            В general
+          </button>
 
           <button
             type="button"
