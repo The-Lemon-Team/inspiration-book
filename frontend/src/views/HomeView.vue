@@ -20,9 +20,19 @@ async function loadBoard() {
   try {
     entries.value = await api.getPublicBoard(50, activeTagId.value || undefined);
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Не удалось загрузить борд';
+    error.value = e instanceof Error ? e.message : 'Не удалось загрузить Борд';
+    entries.value = [];
   } finally {
     loading.value = false;
+  }
+}
+
+async function loadTags() {
+  if (!auth.isAuthenticated) return;
+  try {
+    tags.value = await tagsApi.list();
+  } catch {
+    tags.value = [];
   }
 }
 
@@ -36,32 +46,19 @@ async function vote(id: string) {
 }
 
 onMounted(async () => {
-  try {
-    if (auth.isAuthenticated) {
-      tags.value = await tagsApi.list();
-    }
-    await loadBoard();
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Ошибка загрузки';
-  }
+  await loadTags();
+  await loadBoard();
 });
 </script>
 
 <template>
   <section class="page">
     <header class="page-hero">
-      <h2 class="page-title">публичный борд</h2>
+      <h2 class="page-title">Публичный Борд</h2>
       <p class="caption">Полезные заметки нашего сообщества</p>
-      <div class="home-actions">
-        <template v-if="!auth.isAuthenticated">
-          <RouterLink to="/login" class="btn-primary">войти</RouterLink>
-          <RouterLink to="/register" class="btn-secondary">регистрация</RouterLink>
-        </template>
-        <RouterLink v-else to="/chat" class="btn-primary">мой дневник</RouterLink>
-      </div>
     </header>
 
-    <div v-if="tags.length" class="filter-row">
+    <div v-if="tags.length && !error" class="filter-row">
       <button
         class="filter-chip"
         :class="{ active: !activeTagId }"
@@ -80,11 +77,31 @@ onMounted(async () => {
       </button>
     </div>
 
-    <p v-if="loading" class="muted">Загрузка…</p>
-    <p v-else-if="error" class="error">{{ error }}</p>
-    <p v-else-if="entries.length === 0" class="empty-state">
-      Пока публичных записей нет
-    </p>
+    <div v-if="loading" class="page-state page-state--loading">
+      <span class="material-symbols-outlined page-state__icon spin">progress_activity</span>
+      <p class="caption">Загружаем записи…</p>
+    </div>
+
+    <div v-else-if="error" class="page-state page-state--error">
+      <span class="material-symbols-outlined page-state__icon">cloud_off</span>
+      <h3 class="page-state__title">Не удалось загрузить Борд</h3>
+      <p class="caption page-state__text">{{ error }}</p>
+      <button type="button" class="btn-primary" @click="loadBoard">
+        Попробовать снова
+      </button>
+    </div>
+
+    <div v-else-if="entries.length === 0" class="page-state page-state--empty">
+      <span class="material-symbols-outlined page-state__icon">forum</span>
+      <h3 class="page-state__title">Пока Здесь Тихо</h3>
+      <p class="caption page-state__text">
+        Публичных записей ещё нет. Войдите в аккаунт, напишите в чате и отметьте
+        запись как публичную — она появится на Борде.
+      </p>
+      <RouterLink v-if="auth.isAuthenticated" to="/chat" class="btn-primary">
+        Перейти в чат
+      </RouterLink>
+    </div>
 
     <div v-else class="board-list">
       <EntryCard

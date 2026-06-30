@@ -49,6 +49,25 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null;
   }
 
+  async function changePassword(currentPassword: string, newPassword: string) {
+    loading.value = true;
+    try {
+      return await authApi.changePassword(currentPassword, newPassword);
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function updateEmail(email: string, currentPassword: string) {
+    loading.value = true;
+    try {
+      user.value = await authApi.updateEmail(email, currentPassword);
+      return user.value;
+    } finally {
+      loading.value = false;
+    }
+  }
+
   return {
     user,
     loading,
@@ -57,5 +76,7 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     login,
     logout,
+    changePassword,
+    updateEmail,
   };
 });

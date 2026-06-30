@@ -21,4 +21,18 @@ export const authApi = {
   me() {
     return request<User>(`${API_BASE}/me`);
   },
+
+  changePassword(currentPassword: string, newPassword: string) {
+    return request<{ ok: boolean }>(`${API_BASE}/password`, {
+      method: 'PATCH',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+
+  updateEmail(email: string, currentPassword: string) {
+    return request<User>(`${API_BASE}/email`, {
+      method: 'PATCH',
+      body: JSON.stringify({ email, currentPassword }),
+    });
+  },
 };

@@ -73,7 +73,7 @@ watch(
 <template>
   <section class="page">
     <header class="page-hero">
-      <h2 class="page-title">лента по дням</h2>
+      <h2 class="page-title">Лента по Дням</h2>
       <p class="caption">Все ваши публикации</p>
     </header>
 

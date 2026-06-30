@@ -24,7 +24,7 @@ async function submit() {
 
 <template>
   <section class="auth-page">
-    <h2>Вход</h2>
+    <h2 class="auth-page__title">Вход</h2>
     <form class="auth-form" @submit.prevent="submit">
       <label>
         Email
@@ -35,13 +35,16 @@ async function submit() {
         <input v-model="password" type="password" required autocomplete="current-password" />
       </label>
       <p v-if="error" class="error">{{ error }}</p>
-      <button type="submit" :disabled="auth.loading">
+      <button type="submit" class="btn-primary auth-form__submit" :disabled="auth.loading">
         {{ auth.loading ? 'Вход…' : 'Войти' }}
       </button>
     </form>
-    <p class="auth-link">
-      Нет аккаунта?
-      <RouterLink to="/register">Зарегистрироваться</RouterLink>
-    </p>
+    <div class="auth-footer">
+      <div class="auth-divider" aria-hidden="true" />
+      <p class="auth-link">
+        Нет аккаунта?
+        <RouterLink to="/register">Зарегистрироваться</RouterLink>
+      </p>
+    </div>
   </section>
 </template>

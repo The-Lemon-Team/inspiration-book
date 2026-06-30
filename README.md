@@ -4,7 +4,8 @@
 
 ## Стек
 
-- **Frontend:** Vue 3, Vue Router, Pinia, Vite
+- **Frontend:** Vue 3, Vue Router, Pinia, Vite, GenUI
+- **Desktop:** Electron (Telegram-style shell)
 - **Backend:** NestJS, JWT, Prisma
 - **База:** PostgreSQL
 
@@ -46,7 +47,7 @@ UI: `http://localhost:5173`
 - **Теги** — «Узнал», «Вспомнил», «Сделать» + свои (lo-fi, музыка, книги…)
 - **Группы** (`/tags`) — управление тегами
 - **Регистрация и вход** — личный дневник привязан к аккаунту
-- **Чат** (`/chat`) — structured-сообщения с любыми тегами
+- **Чат** (`/chat`) — structured-сообщения, GenUI (заметки, ссылки, картинки)
 - **Публичный борд** (`/`) — записи сообщества с фильтром по тегам
 - **Лента, календарь, топ** — личная аналитика
 
@@ -85,7 +86,21 @@ lo-fi:
 | GET | `/entries/calendar?month=&year=` | JWT | Календарь |
 | GET | `/entries/top?limit=10` | JWT | Топ личных записей |
 | PATCH | `/entries/:id/public` | JWT | Переключить публичность |
+| POST | `/uploads` | JWT | Загрузить изображение |
 | POST | `/entries/:id/vote` | опц. | Голос «полезно» |
+
+## Desktop (Electron)
+
+```bash
+cd electron && npm install && npm run dev
+```
+
+См. [electron/README.md](electron/README.md).
+
+## GenUI
+
+- `packages/genui` — типы и парсер rich-контента
+- `frontend/src/genui` — Vue-компоненты (заметка, ссылка, изображение)
 
 ## Структура
 
@@ -93,5 +108,7 @@ lo-fi:
 inspiration-book/
 ├── backend/          # NestJS API
 ├── frontend/         # Vue UI
+├── electron/         # Desktop client
+├── packages/genui/   # GenUI core (types, parser)
 └── docker-compose.yml
 ```

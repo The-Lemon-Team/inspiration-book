@@ -1,11 +1,17 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { TagsService } from '../tags/tags.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { UpdateEmailDto } from './dto/update-email.dto';
 import { AuthUser } from './auth-user.interface';
 
 @Injectable()
@@ -69,6 +75,55 @@ export class AuthService {
       throw new UnauthorizedException('Пользователь не найден');
     }
     return this.toAuthUser(user);
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('Пользователь не найден');
+    }
+
+    const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!valid) {
+      throw new UnauthorizedException('Неверный текущий пароль');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    return { ok: true };
+  }
+
+  async updateEmail(userId: string, dto: UpdateEmailDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('Пользователь не найден');
+    }
+
+    const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!valid) {
+      throw new UnauthorizedException('Неверный пароль');
+    }
+
+    const email = dto.email.toLowerCase();
+    if (email === user.email) {
+      throw new BadRequestException('Это уже ваш текущий email');
+    }
+
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      throw new BadRequestException('Email уже занят');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { email },
+    });
+
+    return this.toAuthUser(updated);
   }
 
   private buildAuthResponse(user: {

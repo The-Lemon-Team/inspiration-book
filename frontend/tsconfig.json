@@ -16,7 +16,8 @@
     "noFallthroughCasesInSwitch": true,
     "jsx": "preserve",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@inspiration-book/genui": ["../packages/genui/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]

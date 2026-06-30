@@ -7,6 +7,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@inspiration-book/genui': fileURLToPath(
+        new URL('../packages/genui/src', import.meta.url),
+      ),
     },
   },
   server: {
@@ -15,6 +18,10 @@ export default defineConfig({
         target: 'http://localhost:3000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      '/uploads': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
       },
     },
   },

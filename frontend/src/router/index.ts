@@ -8,6 +8,7 @@ import CalendarView from '@/views/CalendarView.vue';
 import TopView from '@/views/TopView.vue';
 import LoginView from '@/views/LoginView.vue';
 import RegisterView from '@/views/RegisterView.vue';
+import SettingsView from '@/views/SettingsView.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -20,6 +21,7 @@ const router = createRouter({
     { path: '/timeline', name: 'timeline', component: TimelineView, meta: { requiresAuth: true } },
     { path: '/calendar', name: 'calendar', component: CalendarView, meta: { requiresAuth: true } },
     { path: '/top', name: 'top', component: TopView, meta: { requiresAuth: true } },
+    { path: '/settings', name: 'settings', component: SettingsView, meta: { requiresAuth: true } },
   ],
 });
 

@@ -36,6 +36,14 @@ export class EntryParserService {
         continue;
       }
 
+      const imageMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+      if (imageMatch) {
+        const tagName: string = currentTagName ?? 'Заметка';
+        entries.push({ content: trimmed, tagName });
+        currentTagName = tagName;
+        continue;
+      }
+
       if (currentTagName) {
         entries.push({
           content: trimmed,

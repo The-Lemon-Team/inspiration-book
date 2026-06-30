@@ -24,28 +24,38 @@ async function submit() {
 
 <template>
   <section class="auth-page">
-    <h2>Регистрация</h2>
+    <h2 class="auth-page__title">Регистрация</h2>
     <form class="auth-form" @submit.prevent="submit">
       <label>
-        Имя (необязательно)
-        <input v-model="name" type="text" autocomplete="name" />
+        Имя <span class="auth-form__optional">необязательно</span>
+        <input v-model="name" type="text" autocomplete="name" placeholder="Как к вам обращаться" />
       </label>
       <label>
         Email
         <input v-model="email" type="email" required autocomplete="email" />
       </label>
       <label>
-        Пароль (мин. 6 символов)
-        <input v-model="password" type="password" required minlength="6" autocomplete="new-password" />
+        Пароль
+        <input
+          v-model="password"
+          type="password"
+          required
+          minlength="6"
+          autocomplete="new-password"
+          placeholder="Мин. 6 символов"
+        />
       </label>
       <p v-if="error" class="error">{{ error }}</p>
-      <button type="submit" :disabled="auth.loading">
+      <button type="submit" class="btn-primary auth-form__submit" :disabled="auth.loading">
         {{ auth.loading ? 'Регистрация…' : 'Создать аккаунт' }}
       </button>
     </form>
-    <p class="auth-link">
-      Уже есть аккаунт?
-      <RouterLink to="/login">Войти</RouterLink>
-    </p>
+    <div class="auth-footer">
+      <div class="auth-divider" aria-hidden="true" />
+      <p class="auth-link">
+        Уже есть аккаунт?
+        <RouterLink to="/login">Войти</RouterLink>
+      </p>
+    </div>
   </section>
 </template>
