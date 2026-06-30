@@ -3,14 +3,55 @@
   "version": "0.1.0",
   "private": true,
   "description": "Inspiration Book — Electron desktop client",
+  "author": "Inspiration Book",
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "npm run build && electron .",
-    "start": "npm run build && electron ."
+    "start": "npm run build && electron .",
+    "build:frontend": "npm run build:electron --prefix ../frontend",
+    "pack": "npm run build:frontend && npm run build && electron-builder --dir",
+    "dist": "npm run build:frontend && npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.inspirationbook.desktop",
+    "productName": "Inspiration Book",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "frontend",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": ["nsis"],
+      "icon": "build/icon.png",
+      "signAndEditExecutable": false
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   },
   "devDependencies": {
     "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
     "typescript": "^5.7.3"
   }
 }

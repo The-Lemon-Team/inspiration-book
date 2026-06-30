@@ -78,7 +78,7 @@ onMounted(loadCalendar);
 </script>
 
 <template>
-  <section class="page">
+  <section class="page page--wide">
     <header class="page-header">
       <button type="button" class="ghost-btn" @click="shiftMonth(-1)">←</button>
       <h2>{{ monthLabel }}</h2>

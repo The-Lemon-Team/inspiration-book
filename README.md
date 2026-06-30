@@ -4,7 +4,7 @@
 
 ## Стек
 
-- **Frontend:** Vue 3, Vue Router, Pinia, Vite, GenUI
+- **Frontend:** Vue 3, Vue Router, Pinia, Vite, блоки + entities
 - **Desktop:** Electron (Telegram-style shell)
 - **Backend:** NestJS, JWT, Prisma
 - **База:** PostgreSQL
@@ -47,7 +47,7 @@ UI: `http://localhost:5173`
 - **Теги** — «Узнал», «Вспомнил», «Сделать» + свои (lo-fi, музыка, книги…)
 - **Группы** (`/tags`) — управление тегами
 - **Регистрация и вход** — личный дневник привязан к аккаунту
-- **Чат** (`/chat`) — structured-сообщения, GenUI (заметки, ссылки, картинки)
+- **Чат** (`/chat`) — structured-сообщения: JSON-блоки (текст с entities, ссылки, картинки, YouTube)
 - **Публичный борд** (`/`) — записи сообщества с фильтром по тегам
 - **Лента, календарь, топ** — личная аналитика
 
@@ -91,16 +91,42 @@ lo-fi:
 
 ## Desktop (Electron)
 
+Telegram-style shell: сайдбар с навигацией и папками тегов, чат как главный экран.
+
 ```bash
-cd electron && npm install && npm run dev
+# всё сразу (backend + frontend + electron)
+npm install
+npm run desktop
 ```
 
-См. [electron/README.md](electron/README.md).
+Или по частям — см. [electron/README.md](electron/README.md).
 
-## GenUI
+Preview shell в браузере: `cd frontend && npm run dev:desktop`
 
-- `packages/genui` — типы и парсер rich-контента
-- `frontend/src/genui` — Vue-компоненты (заметка, ссылка, изображение)
+Production-сборка: `cd electron && npm run dist`
+
+## Блоки и entities
+
+Как в Notion/Telegram: сообщение хранится как `rawText` (для парсера записей) и `content` (JSON-документ).
+
+- `packages/blocks` — типы, парсер `rawText` → `MessageDocument`, entities для URL
+- `frontend/src/blocks` — Vue-компоненты рендеринга
+
+```json
+{
+  "version": 1,
+  "blocks": [
+    {
+      "type": "section",
+      "tag": "музыка",
+      "children": [
+        { "type": "text", "text": "…", "entities": [{ "type": "url", "offset": 0, "length": 20, "url": "…" }] },
+        { "type": "youtube", "url": "…", "videoId": "…", "title": "…" }
+      ]
+    }
+  ]
+}
+```
 
 ## Структура
 
@@ -109,6 +135,6 @@ inspiration-book/
 ├── backend/          # NestJS API
 ├── frontend/         # Vue UI
 ├── electron/         # Desktop client
-├── packages/genui/   # GenUI core (types, parser)
+├── packages/blocks/  # блоки + entities (types, parser)
 └── docker-compose.yml
 ```
