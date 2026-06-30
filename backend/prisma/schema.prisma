@@ -7,14 +7,27 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  name         String?
-  passwordHash String
-  createdAt    DateTime  @default(now())
-  messages     Message[]
-  entries      Entry[]
-  tags         Tag[]
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  passwordHash  String
+  createdAt     DateTime       @default(now())
+  messages      Message[]
+  entries       Entry[]
+  tags          Tag[]
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Tag {
@@ -35,6 +48,7 @@ model Tag {
 model Message {
   id        String   @id @default(cuid())
   rawText   String
+  content   Json?
   createdAt DateTime @default(now())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

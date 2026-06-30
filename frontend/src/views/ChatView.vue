@@ -4,17 +4,17 @@ import { api } from '@/api/client';
 import ChatComposer from '@/components/chat/ChatComposer.vue';
 import ChatContentTemplates from '@/components/chat/ChatContentTemplates.vue';
 import ChatMessageBubble from '@/components/chat/ChatMessageBubble.vue';
+import type { ContentTemplate } from '@/constants/content-templates';
 import { useShellMode } from '@/composables/useShellMode';
 import type { Message } from '@/types';
 
 const { isDesktopShell } = useShellMode();
 
 const messages = ref<Message[]>([]);
-const draft = ref('');
-const isPublic = ref(false);
 const loading = ref(false);
 const error = ref('');
 const chatFeedRef = ref<HTMLElement | null>(null);
+const composerRef = ref<InstanceType<typeof ChatComposer> | null>(null);
 
 function scrollToLatest() {
   nextTick(() => {
@@ -28,20 +28,42 @@ async function loadMessages() {
   scrollToLatest();
 }
 
-function applyTemplate(text: string) {
-  draft.value = draft.value.trim() ? `${draft.value.trim()}\n\n${text}` : text;
+function onMessageUpdated(updated: Message) {
+  const index = messages.value.findIndex((message) => message.id === updated.id);
+  if (index >= 0) {
+    messages.value[index] = updated;
+  }
+}
+
+function onMessageDeleted(messageId: string) {
+  messages.value = messages.value.filter((message) => message.id !== messageId);
+}
+
+function onMusicTemplate(template: ContentTemplate) {
+  composerRef.value?.openMusicModal(template);
+}
+
+function onLinkTemplate(
+  template: ContentTemplate,
+  data: { url: string; note: string },
+) {
+  composerRef.value?.insertLinkTemplate(template, data);
 }
 
 async function sendMessage() {
-  if (!draft.value.trim()) return;
+  const composer = composerRef.value;
+  if (!composer || composer.isEmpty()) return;
+
+  const rawText = composer.getRawText();
+  const content = composer.getDocument();
+  if (!rawText.trim()) return;
 
   loading.value = true;
   error.value = '';
 
   try {
-    await api.createMessage(draft.value, isPublic.value);
-    draft.value = '';
-    isPublic.value = false;
+    await api.createMessage(rawText, content);
+    composer.clear();
     await loadMessages();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось отправить';
@@ -84,15 +106,19 @@ onMounted(async () => {
           v-for="message in messages"
           :key="message.id"
           :message="message"
+          @updated="onMessageUpdated"
+          @deleted="onMessageDeleted"
         />
       </div>
     </div>
 
     <footer class="chat-page__footer">
-      <ChatContentTemplates @apply="applyTemplate" />
+      <ChatContentTemplates
+        @music-template="onMusicTemplate"
+        @link-template="onLinkTemplate"
+      />
       <ChatComposer
-        v-model:draft="draft"
-        v-model:is-public="isPublic"
+        ref="composerRef"
         :loading="loading"
         :error="error"
         @submit="sendMessage"

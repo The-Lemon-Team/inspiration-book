@@ -2,6 +2,7 @@ import type {
   CalendarDay,
   Entry,
   Message,
+  MessageDocument,
   TimelineDay,
 } from '@/types';
 import { request } from './http';
@@ -9,10 +10,10 @@ import { request } from './http';
 const API_BASE = '/api/entries';
 
 export const api = {
-  createMessage(rawText: string, isPublic = false) {
+  createMessage(rawText: string, content?: MessageDocument) {
     return request<Message>(`${API_BASE}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ rawText, isPublic }),
+      body: JSON.stringify({ rawText, content }),
     });
   },
 
@@ -74,6 +75,19 @@ export const api = {
     return request<Entry>(`${API_BASE}/${id}/public`, {
       method: 'PATCH',
       body: JSON.stringify({ isPublic }),
+    });
+  },
+
+  publishMessage(messageId: string, tagId: string, isPublic = true) {
+    return request<Message>(`${API_BASE}/messages/${messageId}/publish`, {
+      method: 'PATCH',
+      body: JSON.stringify({ tagId, isPublic }),
+    });
+  },
+
+  deleteMessage(messageId: string) {
+    return request<{ ok: boolean }>(`${API_BASE}/messages/${messageId}`, {
+      method: 'DELETE',
     });
   },
 };

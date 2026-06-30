@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { QueryEntriesDto } from './dto/query-entries.dto';
 import { EntryParserService } from './entry-parser.service';
+import { buildMessageDocument, resolveMessageContent } from './message-document.builder';
 
 const publicUserSelect = {
   id: true,
@@ -20,6 +21,14 @@ const entryInclude = {
   tag: true,
   message: true,
   user: { select: publicUserSelect },
+} as const;
+
+const messageInclude = {
+  user: { select: publicUserSelect },
+  entries: {
+    orderBy: { createdAt: 'asc' as const },
+    include: { tag: true },
+  },
 } as const;
 
 @Injectable()
@@ -38,10 +47,15 @@ export class EntriesService {
     }
 
     const isPublic = dto.isPublic ?? false;
+    const content = resolveMessageContent(dto.rawText, dto.content);
 
     return this.prisma.$transaction(async (tx) => {
       const message = await tx.message.create({
-        data: { rawText: dto.rawText, userId },
+        data: {
+          rawText: dto.rawText,
+          content: content as unknown as Prisma.InputJsonValue,
+          userId,
+        },
       });
 
       await tx.entry.createMany({
@@ -56,12 +70,7 @@ export class EntriesService {
 
       return tx.message.findUniqueOrThrow({
         where: { id: message.id },
-        include: {
-          entries: {
-            orderBy: { createdAt: 'asc' },
-            include: { tag: true },
-          },
-        },
+        include: messageInclude,
       });
     });
   }
@@ -189,12 +198,7 @@ export class EntriesService {
     return this.prisma.message.findMany({
       where: { userId },
       orderBy: { createdAt: 'asc' },
-      include: {
-        entries: {
-          orderBy: { createdAt: 'asc' },
-          include: { tag: true },
-        },
-      },
+      include: messageInclude,
     });
   }
 
@@ -212,5 +216,56 @@ export class EntriesService {
       include: { tag: true },
     });
   }
+
+  async publishMessage(
+    userId: string,
+    messageId: string,
+    tagId: string,
+    isPublic = true,
+  ) {
+    const message = await this.prisma.message.findFirst({
+      where: { id: messageId, userId },
+      include: { entries: true },
+    });
+    if (!message) {
+      throw new NotFoundException('Сообщение не найдено');
+    }
+    if (message.entries.length === 0) {
+      throw new BadRequestException('В сообщении нет записей для публикации');
+    }
+
+    const tag = await this.prisma.tag.findFirst({
+      where: { id: tagId, userId },
+    });
+    if (!tag) {
+      throw new NotFoundException('Группа не найдена');
+    }
+
+    await this.prisma.entry.updateMany({
+      where: { messageId, userId },
+      data: { isPublic, tagId },
+    });
+
+    return this.prisma.message.findUniqueOrThrow({
+      where: { id: messageId },
+      include: messageInclude,
+    });
+  }
+
+  async deleteMessage(userId: string, messageId: string) {
+    const message = await this.prisma.message.findFirst({
+      where: { id: messageId, userId },
+    });
+    if (!message) {
+      throw new NotFoundException('Сообщение не найдено');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.entry.deleteMany({ where: { messageId, userId } }),
+      this.prisma.message.delete({ where: { id: messageId } }),
+    ]);
+
+    return { ok: true };
+  }
 }
-
+
