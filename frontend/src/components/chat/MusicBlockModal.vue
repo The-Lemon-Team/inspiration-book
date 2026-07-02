@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import {
   extractYoutubeVideoId,
   youtubeWatchUrl,
@@ -104,6 +104,28 @@ watch(videoId, async (id) => {
 function close() {
   emit('close');
 }
+
+function onEscapeKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  close();
+}
+
+watch(
+  () => props.open && props.template,
+  (isOpen) => {
+    if (isOpen) {
+      document.addEventListener('keydown', onEscapeKeydown, true);
+    } else {
+      document.removeEventListener('keydown', onEscapeKeydown, true);
+    }
+  },
+  { immediate: true },
+);
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onEscapeKeydown, true);
+});
 
 function buildPayload(): MusicBlockFormPayload {
   return {
