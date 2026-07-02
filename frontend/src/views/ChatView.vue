@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { api } from '@/api/client';
 import { chatsApi } from '@/api/chats';
+import ChatHeaderMenuModal from '@/components/chat/ChatHeaderMenuModal.vue';
 import ChatChannelPanel from '@/components/chat/ChatChannelPanel.vue';
 import ChatChannelSettingsModal from '@/components/chat/ChatChannelSettingsModal.vue';
 import ChatComposer from '@/components/chat/ChatComposer.vue';
@@ -17,6 +18,12 @@ import type {
   Message,
   UpwardTarget,
 } from '@/types';
+import {
+  CONTENT_TYPES,
+  computeContentTypeCounts,
+  detectMessageContentTypeIds,
+  type ContentTypeId,
+} from '@/utils/chat-content-types';
 
 const { isDesktopShell } = useShellMode();
 const route = useRoute();
@@ -32,6 +39,8 @@ const childChats = ref<Chat[]>([]);
 const channelActivity = ref<ChannelActivityResponse | null>(null);
 const channelLoading = ref(false);
 const channelSettingsOpen = ref(false);
+const chatHeaderMenuOpen = ref(false);
+const activeContentFilters = ref<ContentTypeId[]>([]);
 
 const chatId = computed(() => route.params.chatId as string);
 
@@ -52,6 +61,14 @@ const resolvedChatId = computed(() => {
 const chatTitle = computed(() => activeChat.value?.name ?? 'Чат');
 const isGeneralChat = computed(() => activeChat.value?.kind === 'GENERAL');
 const hasChildren = computed(() => childChats.value.length > 0);
+const contentTypeCounts = computed(() => computeContentTypeCounts(messages.value));
+const visibleMessages = computed(() => {
+  if (activeContentFilters.value.length === 0) return messages.value;
+  return messages.value.filter((message) => {
+    const detected = new Set(detectMessageContentTypeIds(message));
+    return activeContentFilters.value.some((id) => detected.has(id));
+  });
+});
 
 function scrollToLatest() {
   nextTick(() => {
@@ -162,6 +179,18 @@ async function onChannelSettingsUpdated() {
   }
 }
 
+function toggleContentFilter(typeId: ContentTypeId) {
+  const set = new Set(activeContentFilters.value);
+  if (set.has(typeId)) {
+    set.delete(typeId);
+  } else {
+    set.add(typeId);
+  }
+  activeContentFilters.value = CONTENT_TYPES.map((type) => type.id).filter((id) =>
+    set.has(id),
+  );
+}
+
 watch(chatId, async () => {
   try {
     await reloadChatData();
@@ -184,7 +213,14 @@ onMounted(async () => {
   <section class="chat-page" :class="{ 'chat-page--shell': isDesktopShell }">
     <header class="chat-page__header">
       <div>
-        <h2 class="chat-page__title">{{ chatTitle }}</h2>
+        <button
+          type="button"
+          class="chat-page__title-btn"
+          @click="chatHeaderMenuOpen = true"
+        >
+          <h2 class="chat-page__title">{{ chatTitle }}</h2>
+          <span class="material-symbols-outlined">expand_more</span>
+        </button>
         <p v-if="!isDesktopShell" class="caption">
           Заметки, ссылки и картинки — своя история в каждом чате
         </p>
@@ -210,6 +246,37 @@ onMounted(async () => {
       @close="channelSettingsOpen = false"
       @updated="onChannelSettingsUpdated"
     />
+    <ChatHeaderMenuModal
+      :open="chatHeaderMenuOpen"
+      :chat="activeChat ?? null"
+      :content-type-counts="contentTypeCounts"
+      @close="chatHeaderMenuOpen = false"
+      @updated="onChannelSettingsUpdated"
+      @open-settings="
+        () => {
+          chatHeaderMenuOpen = false;
+          channelSettingsOpen = true;
+        }
+      "
+    />
+
+    <div class="chat-page__content-filters">
+      <button
+        v-for="type in CONTENT_TYPES"
+        :key="type.id"
+        type="button"
+        class="chat-page__content-chip"
+        :class="{
+          'chat-page__content-chip--active': activeContentFilters.includes(type.id),
+          'chat-page__content-chip--present': (contentTypeCounts[type.id] ?? 0) > 0,
+        }"
+        @click="toggleContentFilter(type.id)"
+      >
+        <span class="material-symbols-outlined">{{ type.icon }}</span>
+        {{ type.label }}
+        <strong>{{ contentTypeCounts[type.id] ?? 0 }}</strong>
+      </button>
+    </div>
 
     <div class="chat-page__layout">
       <ChatChannelPanel
@@ -218,13 +285,13 @@ onMounted(async () => {
       />
 
       <div ref="chatFeedRef" class="chat-page__feed">
-        <p v-if="messages.length === 0" class="empty-state">
+        <p v-if="visibleMessages.length === 0" class="empty-state">
           Пока записей нет. Напишите первое сообщение.
         </p>
 
         <div class="chat-page__messages">
           <ChatMessageBubble
-            v-for="message in messages"
+            v-for="message in visibleMessages"
             :key="message.id"
             :message="message"
             :upward-targets="upwardTargets"

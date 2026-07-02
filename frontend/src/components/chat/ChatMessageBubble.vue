@@ -5,6 +5,7 @@ import PublishMessageModal from '@/components/chat/PublishMessageModal.vue';
 import { BlockMessage } from '@/blocks';
 import type { Message, UpwardTarget } from '@/types';
 import { messageAuthorLabel, tagStyle } from '@/types';
+import { detectMessageContentTypes } from '@/utils/chat-content-types';
 import { getMessagePublishState } from '@/utils/message-publish';
 
 const props = defineProps<{
@@ -25,6 +26,7 @@ const actionError = ref('');
 
 const publishState = computed(() => getMessagePublishState(props.message));
 const authorLabel = computed(() => messageAuthorLabel(props.message));
+const contentTypes = computed(() => detectMessageContentTypes(props.message));
 
 const flowBadge = computed(() => {
   const meta = props.message.flowMeta;
@@ -183,6 +185,16 @@ async function removeMessage() {
       </p>
 
       <BlockMessage :raw-text="message.rawText" :content="message.content" />
+      <ul v-if="contentTypes.length" class="chat-message__content-types">
+        <li
+          v-for="contentType in contentTypes"
+          :key="contentType.id"
+          class="chat-message__content-type"
+        >
+          <span class="material-symbols-outlined">{{ contentType.icon }}</span>
+          {{ contentType.label }}
+        </li>
+      </ul>
       <footer class="chat-message__footer">
         <div class="chat-message__controls">
           <span
