@@ -28,6 +28,20 @@ export const api = {
     });
   },
 
+  replayMessage(
+    messageId: string,
+    direction: 'UP' | 'DOWN',
+    targetChatId?: string,
+  ) {
+    return request<Message | { count: number; messages: Message[] }>(
+      `${API_BASE}/messages/${messageId}/replay`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ direction, targetChatId }),
+      },
+    );
+  },
+
   getPublicBoard(limit = 50, tagId?: string) {
     const params = new URLSearchParams({ limit: String(limit) });
     if (tagId) params.set('tagId', tagId);

@@ -99,7 +99,7 @@ onMounted(async () => {
       <p class="caption page-state__text">
         Опубликуйте сообщение из чата с тегом — оно появится здесь.
       </p>
-      <RouterLink v-if="auth.isAuthenticated" to="/chat" class="btn-primary">
+      <RouterLink v-if="auth.isAuthenticated" to="/chats" class="btn-primary">
         Перейти в чаты
       </RouterLink>
     </div>

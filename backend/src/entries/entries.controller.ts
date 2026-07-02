@@ -20,6 +20,7 @@ import {
 import { CreateMessageDto } from './dto/create-message.dto';
 import { QueryEntriesDto } from './dto/query-entries.dto';
 import { PublishMessageDto } from './dto/publish-message.dto';
+import { ReplayMessageDto } from './dto/replay-message.dto';
 import { SetPublicDto } from './dto/set-public.dto';
 import { EntriesService } from './entries.service';
 
@@ -60,6 +61,16 @@ export class EntriesController {
     @Param('id') id: string,
   ) {
     return this.entriesService.shareMessageToGeneral(user!.id, id);
+  }
+
+  @Post('messages/:id/replay')
+  @UseGuards(JwtAuthGuard)
+  replayMessage(
+    @CurrentUser() user: AuthUser | null,
+    @Param('id') id: string,
+    @Body() dto: ReplayMessageDto,
+  ) {
+    return this.entriesService.replayMessage(user!.id, id, dto);
   }
 
   @Patch('messages/:id/publish')

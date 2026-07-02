@@ -14,7 +14,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const logoClickTarget = ref<LogoClickTarget>(loadLogoTarget());
 
   const logoRoute = computed(() =>
-    logoClickTarget.value === 'chat' ? '/chat' : '/filters',
+    logoClickTarget.value === 'chat' ? '/chats' : '/filters',
   );
 
   function setLogoClickTarget(target: LogoClickTarget) {

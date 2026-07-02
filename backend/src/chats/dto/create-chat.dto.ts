@@ -8,4 +8,8 @@ export class CreateChatDto {
   @IsOptional()
   @IsString()
   collectionId?: string;
+
+  @IsOptional()
+  @IsString()
+  parentChatId?: string;
 }

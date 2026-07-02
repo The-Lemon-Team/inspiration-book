@@ -2,6 +2,9 @@ import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router
 import { useAuthStore } from '@/stores/auth';
 import { useChatsStore } from '@/stores/chats';
 import FiltersView from '@/views/FiltersView.vue';
+import GroupsView from '@/views/GroupsView.vue';
+import GraphView from '@/views/GraphView.vue';
+import ChatsListView from '@/views/ChatsListView.vue';
 import ChatView from '@/views/ChatView.vue';
 import TimelineView from '@/views/TimelineView.vue';
 import CalendarView from '@/views/CalendarView.vue';
@@ -20,11 +23,14 @@ const router = createRouter({
   routes: [
     { path: '/', redirect: '/filters' },
     { path: '/filters', name: 'filters', component: FiltersView },
+    { path: '/groups', name: 'groups', component: GroupsView, meta: { requiresAuth: true } },
+    { path: '/graph', name: 'graph', component: GraphView, meta: { requiresAuth: true } },
     { path: '/tags', redirect: '/filters' },
+    { path: '/chats', name: 'chats-list', component: ChatsListView, meta: { requiresAuth: true } },
     {
       path: '/chat',
       name: 'chat',
-      redirect: () => ({ name: 'chat-room', params: { chatId: 'general' } }),
+      redirect: '/chats',
       meta: { requiresAuth: true },
     },
     {
@@ -57,10 +63,7 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.guestOnly && auth.isAuthenticated) {
-    const chatId = await resolveGeneralChatId();
-    return chatId
-      ? { name: 'chat-room', params: { chatId } }
-      : { name: 'filters' };
+    return { name: 'chats-list' };
   }
 
   if (to.name === 'chat-room' && to.params.chatId === 'general') {

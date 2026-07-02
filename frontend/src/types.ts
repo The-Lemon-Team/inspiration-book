@@ -27,10 +27,71 @@ export interface Chat {
   name: string;
   slug: string;
   kind: ChatKind;
+  parentChatId?: string | null;
+  parentChat?: Chat | null;
   collectionId?: string | null;
   collection?: ChatCollection | null;
+  isPinned?: boolean;
   sortOrder?: number;
   createdAt?: string;
+}
+
+export type FlowEventKind = 'REPLAY_UP' | 'REPLAY_DOWN';
+
+export interface FlowEventItem {
+  id: string;
+  kind: FlowEventKind;
+  sourceChatId: string;
+  sourceChatName: string;
+  targetChatId: string;
+  targetChatName: string;
+  entryCount: number | null;
+  createdAt: string;
+  isOwn: boolean;
+}
+
+export interface ChannelActivityResponse {
+  parentChat: Chat | null;
+  events: FlowEventItem[];
+}
+
+export interface UpwardTarget {
+  chatId: string;
+  chatName: string;
+  kind: ChatKind;
+  via: 'parent' | 'grant';
+}
+
+export interface UpwardGrant {
+  id: string;
+  fromChatId: string;
+  fromChatName: string;
+  toChatId: string;
+  toChatName: string;
+  createdAt: string;
+}
+
+export interface ReplaySchedule {
+  id: string;
+  channelChatId: string;
+  signalTagId: string;
+  signalTag?: Tag;
+  scheduleTime: string;
+  timezone: string;
+  enabled: boolean;
+  skipIfEmpty: boolean;
+  lastRunAt?: string | null;
+  lastRunLocalDate?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MessageFlowMeta {
+  kind?: 'REPLAY_UP' | 'REPLAY_DOWN' | 'SCHEDULED_DIGEST';
+  sourceChatId?: string;
+  sourceChatName?: string;
+  signalTagName?: string;
+  localDate?: string;
 }
 
 export interface ChatCollection {
@@ -70,6 +131,7 @@ export interface Message {
   chatId?: string;
   chat?: Chat;
   originMessageId?: string | null;
+  flowMeta?: MessageFlowMeta | null;
   entries: Entry[];
 }
 

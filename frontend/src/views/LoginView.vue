@@ -14,7 +14,7 @@ async function submit() {
   error.value = '';
   try {
     await auth.login(email.value, password.value);
-    const redirect = (router.currentRoute.value.query.redirect as string) || '/chat';
+    const redirect = (router.currentRoute.value.query.redirect as string) || '/chats';
     router.push(redirect);
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Ошибка входа';

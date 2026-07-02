@@ -18,7 +18,13 @@ const settings = useSettingsStore();
 
         <nav class="header-nav">
           <RouterLink to="/filters">Фильтры</RouterLink>
-          <RouterLink v-if="auth.isAuthenticated" to="/chat" class="header-nav__wide">
+          <RouterLink v-if="auth.isAuthenticated" to="/groups" class="header-nav__wide">
+            Группы
+          </RouterLink>
+          <RouterLink v-if="auth.isAuthenticated" to="/graph" class="header-nav__wide">
+            Graph
+          </RouterLink>
+          <RouterLink v-if="auth.isAuthenticated" to="/chats" class="header-nav__wide">
             Чаты
           </RouterLink>
           <RouterLink v-if="auth.isAuthenticated" to="/timeline" class="header-nav__wide">

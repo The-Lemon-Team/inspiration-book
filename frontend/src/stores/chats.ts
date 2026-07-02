@@ -66,6 +66,16 @@ export const useChatsStore = defineStore('chats', () => {
     return allChats.value.find((chat) => chat.id === chatId) ?? null;
   }
 
+  async function setPinned(chatId: string, pinned: boolean) {
+    await chatsApi.setPin(chatId, pinned);
+    await load(true);
+  }
+
+  async function reorderChats(chatIds: string[]) {
+    if (!chatIds.length) return;
+    applyList(await chatsApi.reorder(chatIds));
+  }
+
   return {
     general,
     collections,
@@ -77,5 +87,7 @@ export const useChatsStore = defineStore('chats', () => {
     createCollection,
     createChat,
     chatById,
+    setPinned,
+    reorderChats,
   };
 });

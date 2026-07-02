@@ -11,6 +11,16 @@ enum ChatKind {
   REGULAR
 }
 
+enum ChatLinkDirection {
+  UP
+  DOWN
+}
+
+enum FlowEventKind {
+  REPLAY_UP
+  REPLAY_DOWN
+}
+
 model User {
   id              String           @id @default(cuid())
   email           String           @unique
@@ -23,6 +33,10 @@ model User {
   refreshTokens   RefreshToken[]
   chats           Chat[]
   chatCollections ChatCollection[]
+  chatLinks       ChatLink[]
+  chatUpwardGrants ChatUpwardGrant[]
+  flowEvents      FlowEvent[]
+  replaySchedules ReplaySchedule[]
 }
 
 model RefreshToken {
@@ -56,17 +70,103 @@ model Chat {
   name         String
   slug         String
   kind         ChatKind        @default(REGULAR)
+  parentChatId String?
+  parentChat   Chat?           @relation("ChatHierarchy", fields: [parentChatId], references: [id], onDelete: SetNull)
+  childChats   Chat[]          @relation("ChatHierarchy")
   collectionId String?
   collection   ChatCollection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
   userId       String
   user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages     Message[]
+  isPinned     Boolean         @default(false)
   sortOrder    Int             @default(0)
   createdAt    DateTime        @default(now())
+  linksAsParent ChatLink[]     @relation("ChatLinkParent")
+  linksAsChild  ChatLink[]     @relation("ChatLinkChild")
+  upwardGrantsFrom ChatUpwardGrant[] @relation("GrantFrom")
+  upwardGrantsTo   ChatUpwardGrant[] @relation("GrantTo")
+  flowEventsAsSource FlowEvent[] @relation("FlowSource")
+  flowEventsAsTarget FlowEvent[] @relation("FlowTarget")
+  replaySchedules    ReplaySchedule[]
 
   @@unique([userId, slug])
   @@index([userId])
   @@index([collectionId])
+  @@index([parentChatId])
+}
+
+model ChatLink {
+  id            String            @id @default(cuid())
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentChatId  String
+  parentChat    Chat              @relation("ChatLinkParent", fields: [parentChatId], references: [id], onDelete: Cascade)
+  childChatId   String
+  childChat     Chat              @relation("ChatLinkChild", fields: [childChatId], references: [id], onDelete: Cascade)
+  direction     ChatLinkDirection
+  includePrefix Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+
+  @@unique([childChatId, parentChatId, direction])
+  @@index([userId])
+  @@index([parentChatId])
+  @@index([childChatId])
+}
+
+model ChatUpwardGrant {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromChatId String
+  fromChat   Chat     @relation("GrantFrom", fields: [fromChatId], references: [id], onDelete: Cascade)
+  toChatId   String
+  toChat     Chat     @relation("GrantTo", fields: [toChatId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([fromChatId, toChatId])
+  @@index([userId])
+}
+
+model FlowEvent {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind            FlowEventKind
+  sourceChatId    String
+  sourceChat      Chat          @relation("FlowSource", fields: [sourceChatId], references: [id], onDelete: Cascade)
+  targetChatId    String
+  targetChat      Chat          @relation("FlowTarget", fields: [targetChatId], references: [id], onDelete: Cascade)
+  sourceMessageId String?
+  targetMessageId String?
+  entryCount      Int?
+  createdAt       DateTime      @default(now())
+
+  @@index([userId])
+  @@index([sourceChatId])
+  @@index([targetChatId])
+  @@index([createdAt])
+}
+
+model ReplaySchedule {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelChatId    String
+  channelChat      Chat      @relation(fields: [channelChatId], references: [id], onDelete: Cascade)
+  signalTagId      String
+  signalTag        Tag       @relation(fields: [signalTagId], references: [id], onDelete: Restrict)
+  scheduleTime     String
+  timezone         String    @default("Europe/Moscow")
+  enabled          Boolean   @default(true)
+  skipIfEmpty      Boolean   @default(true)
+  lastRunAt        DateTime?
+  lastRunLocalDate String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([channelChatId])
+  @@index([enabled])
 }
 
 model Tag {
@@ -78,6 +178,7 @@ model Tag {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   entries   Entry[]
+  replaySchedules ReplaySchedule[]
   createdAt DateTime @default(now())
 
   @@unique([userId, slug])
@@ -96,6 +197,7 @@ model Message {
   originMessageId String?
   originMessage   Message?  @relation("MessageCrossPost", fields: [originMessageId], references: [id], onDelete: SetNull)
   crossPosts      Message[] @relation("MessageCrossPost")
+  flowMeta        Json?
   entries         Entry[]
 
   @@index([createdAt])

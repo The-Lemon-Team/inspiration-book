@@ -16,6 +16,8 @@ const creating = ref(false);
 
 const navItems = [
   { to: '/filters', icon: 'filter_alt', label: 'Фильтры' },
+  { to: '/groups', icon: 'account_tree', label: 'Группы' },
+  { to: '/graph', icon: 'graph_5', label: 'Graph' },
   { to: '/timeline', icon: 'view_timeline', label: 'Лента' },
   { to: '/calendar', icon: 'calendar_month', label: 'Календарь' },
   { to: '/settings', icon: 'settings', label: 'Настройки' },

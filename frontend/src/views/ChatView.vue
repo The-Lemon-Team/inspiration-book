@@ -2,13 +2,21 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { api } from '@/api/client';
+import { chatsApi } from '@/api/chats';
+import ChatChannelPanel from '@/components/chat/ChatChannelPanel.vue';
+import ChatChannelSettingsModal from '@/components/chat/ChatChannelSettingsModal.vue';
 import ChatComposer from '@/components/chat/ChatComposer.vue';
 import ChatContentTemplates from '@/components/chat/ChatContentTemplates.vue';
 import ChatMessageBubble from '@/components/chat/ChatMessageBubble.vue';
 import type { ContentTemplate } from '@/constants/content-templates';
 import { useShellMode } from '@/composables/useShellMode';
 import { useChatsStore } from '@/stores/chats';
-import type { Message } from '@/types';
+import type {
+  ChannelActivityResponse,
+  Chat,
+  Message,
+  UpwardTarget,
+} from '@/types';
 
 const { isDesktopShell } = useShellMode();
 const route = useRoute();
@@ -19,6 +27,11 @@ const loading = ref(false);
 const error = ref('');
 const chatFeedRef = ref<HTMLElement | null>(null);
 const composerRef = ref<InstanceType<typeof ChatComposer> | null>(null);
+const upwardTargets = ref<UpwardTarget[]>([]);
+const childChats = ref<Chat[]>([]);
+const channelActivity = ref<ChannelActivityResponse | null>(null);
+const channelLoading = ref(false);
+const channelSettingsOpen = ref(false);
 
 const chatId = computed(() => route.params.chatId as string);
 
@@ -29,14 +42,50 @@ const activeChat = computed(() => {
   return chats.chatById(chatId.value);
 });
 
+const resolvedChatId = computed(() => {
+  if (chatId.value === 'general') {
+    return chats.general?.id ?? null;
+  }
+  return chatId.value || null;
+});
+
 const chatTitle = computed(() => activeChat.value?.name ?? 'Чат');
 const isGeneralChat = computed(() => activeChat.value?.kind === 'GENERAL');
+const hasChildren = computed(() => childChats.value.length > 0);
 
 function scrollToLatest() {
   nextTick(() => {
     const feed = chatFeedRef.value;
     if (feed) feed.scrollTop = feed.scrollHeight;
   });
+}
+
+async function loadReplayContext() {
+  const id = resolvedChatId.value;
+  if (!id || isGeneralChat.value) {
+    upwardTargets.value = [];
+    childChats.value = [];
+    channelActivity.value = null;
+    return;
+  }
+
+  channelLoading.value = true;
+  try {
+    const [targets, children, activity] = await Promise.all([
+      chatsApi.getUpwardTargets(id),
+      chatsApi.getChildren(id),
+      chatsApi.getChannelActivity(id),
+    ]);
+    upwardTargets.value = targets;
+    childChats.value = children;
+    channelActivity.value = activity;
+  } catch {
+    upwardTargets.value = [];
+    childChats.value = [];
+    channelActivity.value = null;
+  } finally {
+    channelLoading.value = false;
+  }
 }
 
 async function loadMessages() {
@@ -52,6 +101,11 @@ async function loadMessages() {
     messages.value = await api.getMessages(chatId.value);
   }
   scrollToLatest();
+}
+
+async function reloadChatData() {
+  await loadMessages();
+  await loadReplayContext();
 }
 
 function onMessageUpdated(updated: Message) {
@@ -92,7 +146,7 @@ async function sendMessage() {
       chatId.value === 'general' ? chats.general?.id : chatId.value;
     await api.createMessage(rawText, content, targetChatId);
     composer.clear();
-    await loadMessages();
+    await reloadChatData();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось отправить';
   } finally {
@@ -100,9 +154,17 @@ async function sendMessage() {
   }
 }
 
+async function onChannelSettingsUpdated() {
+  await chats.load(true);
+  await loadReplayContext();
+  if (resolvedChatId.value) {
+    messages.value = await api.getMessages(resolvedChatId.value);
+  }
+}
+
 watch(chatId, async () => {
   try {
-    await loadMessages();
+    await reloadChatData();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось загрузить сообщения';
   }
@@ -111,7 +173,7 @@ watch(chatId, async () => {
 onMounted(async () => {
   try {
     await chats.load();
-    await loadMessages();
+    await reloadChatData();
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось загрузить сообщения';
   }
@@ -131,21 +193,47 @@ onMounted(async () => {
           {{ isGeneralChat ? 'Общая атмосфера' : 'Тематический чат' }}
         </p>
       </div>
+      <button
+        v-if="!isGeneralChat && resolvedChatId"
+        type="button"
+        class="chat-page__link-btn"
+        @click="channelSettingsOpen = true"
+      >
+        <span class="material-symbols-outlined">tune</span>
+        Настройки канала
+      </button>
     </header>
 
-    <div ref="chatFeedRef" class="chat-page__feed">
-      <p v-if="messages.length === 0" class="empty-state">
-        Пока записей нет. Напишите первое сообщение.
-      </p>
+    <ChatChannelSettingsModal
+      :open="channelSettingsOpen"
+      :chat="activeChat ?? null"
+      @close="channelSettingsOpen = false"
+      @updated="onChannelSettingsUpdated"
+    />
 
-      <div class="chat-page__messages">
-        <ChatMessageBubble
-          v-for="message in messages"
-          :key="message.id"
-          :message="message"
-          @updated="onMessageUpdated"
-          @deleted="onMessageDeleted"
-        />
+    <div class="chat-page__layout">
+      <ChatChannelPanel
+        :activity="channelActivity"
+        :loading="channelLoading"
+      />
+
+      <div ref="chatFeedRef" class="chat-page__feed">
+        <p v-if="messages.length === 0" class="empty-state">
+          Пока записей нет. Напишите первое сообщение.
+        </p>
+
+        <div class="chat-page__messages">
+          <ChatMessageBubble
+            v-for="message in messages"
+            :key="message.id"
+            :message="message"
+            :upward-targets="upwardTargets"
+            :has-children="hasChildren"
+            @updated="onMessageUpdated"
+            @deleted="onMessageDeleted"
+            @replayed="loadReplayContext"
+          />
+        </div>
       </div>
     </div>
 
