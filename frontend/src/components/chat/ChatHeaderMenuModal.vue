@@ -2,17 +2,16 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { chatsApi } from '@/api/chats';
 import { useChatsStore } from '@/stores/chats';
-import type { Chat } from '@/types';
+import type { Chat, ChatContentSummary } from '@/types';
 import {
   CONTENT_TYPES,
-  type ContentTypeId,
   type ContentTypeDefinition,
 } from '@/utils/chat-content-types';
 
 const props = defineProps<{
   open: boolean;
   chat: Chat | null;
-  contentTypeCounts: Record<ContentTypeId, number>;
+  contentSummary: ChatContentSummary | null;
 }>();
 
 const emit = defineEmits<{
@@ -50,9 +49,11 @@ const currentParentName = computed(() => props.chat?.parentChat?.name ?? 'Не �
 const contentStats = computed<Array<ContentTypeDefinition & { count: number }>>(() =>
   CONTENT_TYPES.map((type) => ({
     ...type,
-    count: props.contentTypeCounts[type.id] ?? 0,
+    count:
+      props.contentSummary?.types.find((item) => item.id === type.id)?.count ?? 0,
   })),
 );
+const totalMessages = computed(() => props.contentSummary?.totalMessages ?? 0);
 
 async function loadData() {
   if (!props.open) return;
@@ -199,17 +200,22 @@ onMounted(() => {
 
         <section class="chat-header-menu__section">
           <h3 class="chat-header-menu__section-title">Типы контента</h3>
-          <ul class="chat-header-menu__content-list">
-            <li
+          <div class="chat-header-menu__stats-grid">
+            <article class="chat-header-menu__stat-card">
+              <span class="material-symbols-outlined">chat</span>
+              <span>Сообщения</span>
+              <strong>{{ totalMessages }}</strong>
+            </article>
+            <article
               v-for="item in contentStats"
               :key="item.id"
-              class="chat-header-menu__content-item"
+              class="chat-header-menu__stat-card"
             >
               <span class="material-symbols-outlined">{{ item.icon }}</span>
               <span>{{ item.label }}</span>
               <strong>{{ item.count }}</strong>
-            </li>
-          </ul>
+            </article>
+          </div>
         </section>
 
         <p v-if="error" class="chat-header-menu__error">{{ error }}</p>

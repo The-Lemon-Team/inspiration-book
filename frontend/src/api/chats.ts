@@ -1,5 +1,6 @@
 import { request } from './http';
 import type {
+  ChatContentSummary,
   ChannelActivityResponse,
   Chat,
   ChatCollection,
@@ -20,6 +21,26 @@ export const chatsApi = {
     return request<ChatCollection>(`${API_BASE}/collections`, {
       method: 'POST',
       body: JSON.stringify({ name }),
+    });
+  },
+
+  updateCollection(collectionId: string, name: string) {
+    return request<ChatCollection>(`${API_BASE}/collections/${collectionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    });
+  },
+
+  deleteCollection(collectionId: string) {
+    return request<{ ok: boolean }>(`${API_BASE}/collections/${collectionId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  setCollection(chatId: string, collectionId: string | null) {
+    return request<Chat>(`${API_BASE}/${chatId}/collection`, {
+      method: 'PATCH',
+      body: JSON.stringify({ collectionId }),
     });
   },
 
@@ -44,13 +65,6 @@ export const chatsApi = {
     });
   },
 
-  reorder(chatIds: string[]) {
-    return request<ChatListResponse>(`${API_BASE}/reorder`, {
-      method: 'POST',
-      body: JSON.stringify({ chatIds }),
-    });
-  },
-
   getUpwardTargets(chatId: string) {
     return request<UpwardTarget[]>(`${API_BASE}/${chatId}/upward-targets`);
   },
@@ -63,6 +77,10 @@ export const chatsApi = {
     return request<ChannelActivityResponse>(
       `${API_BASE}/${chatId}/channel-activity?limit=${limit}`,
     );
+  },
+
+  getContentSummary(chatId: string) {
+    return request<ChatContentSummary>(`${API_BASE}/${chatId}/content-summary`);
   },
 
   getReplaySchedules(channelChatId: string) {

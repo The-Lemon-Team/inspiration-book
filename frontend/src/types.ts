@@ -14,6 +14,47 @@ export interface Tag {
   createdAt?: string;
 }
 
+export interface TagStatItem {
+  tag: Tag;
+  entryCount: number;
+  messageCount: number;
+  lastMentionedAt: string | null;
+}
+
+export interface TagMentionItem {
+  id: string;
+  content: string;
+  createdAt: string;
+  tag: Tag;
+  messageId: string | null;
+  chat: Pick<Chat, 'id' | 'name' | 'slug' | 'kind'> | null;
+}
+
+export interface TaggedMessageItem {
+  id: string;
+  rawText: string;
+  createdAt: string;
+  chat: Pick<Chat, 'id' | 'name' | 'slug' | 'kind'> | null;
+  entries: Array<{
+    id: string;
+    content: string;
+    createdAt: string;
+    tag: Tag;
+  }>;
+  tags: Tag[];
+}
+
+export interface TagStatsResponse {
+  summary: {
+    mentionedTags: number;
+    totalMentions: number;
+    totalMessages: number;
+  };
+  topTags: TagStatItem[];
+  recentMentions: TagMentionItem[];
+  recentMessages: TaggedMessageItem[];
+}
+
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
@@ -34,6 +75,7 @@ export interface Chat {
   isPinned?: boolean;
   sortOrder?: number;
   createdAt?: string;
+  lastMessageAt?: string | null;
 }
 
 export type FlowEventKind = 'REPLAY_UP' | 'REPLAY_DOWN';
@@ -53,6 +95,20 @@ export interface FlowEventItem {
 export interface ChannelActivityResponse {
   parentChat: Chat | null;
   events: FlowEventItem[];
+}
+
+export type ContentTypeSummaryId = 'design' | 'lofi' | 'music' | 'video';
+
+export interface ContentTypeSummaryItem {
+  id: ContentTypeSummaryId;
+  label: string;
+  count: number;
+}
+
+export interface ChatContentSummary {
+  chatId: string;
+  totalMessages: number;
+  types: ContentTypeSummaryItem[];
 }
 
 export interface UpwardTarget {
@@ -100,6 +156,7 @@ export interface ChatCollection {
   slug: string;
   sortOrder?: number;
   createdAt?: string;
+  lastMessageAt?: string | null;
   chats?: Chat[];
 }
 

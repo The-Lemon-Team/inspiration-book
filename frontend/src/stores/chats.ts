@@ -48,6 +48,41 @@ export const useChatsStore = defineStore('chats', () => {
     return collection;
   }
 
+  async function updateCollection(collectionId: string, name: string) {
+    const updated = await chatsApi.updateCollection(collectionId, name);
+    collections.value = collections.value.map((collection) =>
+      collection.id === collectionId ? { ...collection, ...updated } : collection,
+    );
+    return updated;
+  }
+
+  async function deleteCollection(collectionId: string) {
+    await chatsApi.deleteCollection(collectionId);
+    collections.value = collections.value.filter(
+      (collection) => collection.id !== collectionId,
+    );
+  }
+
+  async function setChatCollection(chatId: string, collectionId: string | null) {
+    await chatsApi.setCollection(chatId, collectionId);
+    await load(true);
+  }
+
+  async function syncCollectionChats(collectionId: string, chatIds: string[]) {
+    const collection = collections.value.find((item) => item.id === collectionId);
+    const currentIds = new Set((collection?.chats ?? []).map((chat) => chat.id));
+    const nextIds = new Set(chatIds);
+
+    const toAdd = chatIds.filter((id) => !currentIds.has(id));
+    const toRemove = [...currentIds].filter((id) => !nextIds.has(id));
+
+    await Promise.all([
+      ...toAdd.map((chatId) => chatsApi.setCollection(chatId, collectionId)),
+      ...toRemove.map((chatId) => chatsApi.setCollection(chatId, null)),
+    ]);
+    await load(true);
+  }
+
   async function createChat(name: string, collectionId?: string) {
     const chat = await chatsApi.createChat(name, collectionId);
     if (collectionId) {
@@ -71,11 +106,6 @@ export const useChatsStore = defineStore('chats', () => {
     await load(true);
   }
 
-  async function reorderChats(chatIds: string[]) {
-    if (!chatIds.length) return;
-    applyList(await chatsApi.reorder(chatIds));
-  }
-
   return {
     general,
     collections,
@@ -85,9 +115,12 @@ export const useChatsStore = defineStore('chats', () => {
     loaded,
     load,
     createCollection,
+    updateCollection,
+    deleteCollection,
+    setChatCollection,
+    syncCollectionChats,
     createChat,
     chatById,
     setPinned,
-    reorderChats,
   };
 });
