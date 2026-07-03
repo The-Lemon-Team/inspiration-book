@@ -2,6 +2,7 @@ import type {
   ContentBlock,
   GalleryBlock,
   ImageBlock,
+  LinkBlock,
   MessageDocument,
   MusicBlock,
   SectionBlock,
@@ -46,7 +47,11 @@ function blockToTiptapNodes(block: ContentBlock): TiptapJSONContent[] {
       return [
         {
           type: 'linkBlock',
-          attrs: { url: block.url, label: block.label ?? null },
+          attrs: {
+            url: block.url,
+            label: block.label ?? null,
+            contentTypeId: block.contentTypeId ?? null,
+          },
         },
       ];
     case 'image':
@@ -78,6 +83,7 @@ function blockToTiptapNodes(block: ContentBlock): TiptapJSONContent[] {
             heading: block.heading ?? null,
             description: block.description ?? null,
             tag: block.tag ?? null,
+            contentTypeId: block.contentTypeId ?? null,
             extraTags: block.extraTags?.length ? block.extraTags : null,
             display: block.display,
           },
@@ -173,6 +179,9 @@ function tiptapNodesToBlocks(nodes: TiptapJSONContent[]): ContentBlock[] {
           type: 'link',
           url: String(node.attrs?.url ?? ''),
           label: node.attrs?.label ? String(node.attrs.label) : undefined,
+          contentTypeId: node.attrs?.contentTypeId
+            ? (String(node.attrs.contentTypeId) as LinkBlock['contentTypeId'])
+            : undefined,
         });
         break;
       case 'imageBlock':
@@ -199,6 +208,9 @@ function tiptapNodesToBlocks(nodes: TiptapJSONContent[]): ContentBlock[] {
           heading: node.attrs?.heading ? String(node.attrs.heading) : undefined,
           description: node.attrs?.description ? String(node.attrs.description) : undefined,
           tag: node.attrs?.tag ? String(node.attrs.tag) : undefined,
+          contentTypeId: node.attrs?.contentTypeId
+            ? (String(node.attrs.contentTypeId) as MusicBlock['contentTypeId'])
+            : undefined,
           extraTags: Array.isArray(node.attrs?.extraTags)
             ? (node.attrs.extraTags as string[]).map(String).filter(Boolean)
             : undefined,

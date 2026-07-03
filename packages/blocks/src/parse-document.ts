@@ -6,7 +6,6 @@ import { isYoutubeUrl, parseYoutubeMarker } from './youtube.js';
 
 const URL_RE = /^https?:\/\/\S+$/i;
 const IMAGE_RE = /^!\[([^\]]*)\]\(([^)]+)\)$/;
-const TAG_HEADER_RE = /^([^:]+):\s*$/;
 const BULLET_RE = /^[-•*]\s+(.+)$/;
 
 function textBlock(text: string): TextBlock {
@@ -90,46 +89,20 @@ export function parseInlineBlocks(content: string): ContentBlock[] {
   return [textBlock(content)];
 }
 
+/** Плоский разбор raw-текста: строки → текст или inline-блоки (music, youtube, …). */
 export function parseRawTextToDocument(rawText: string): MessageDocument {
-  const lines = rawText.split(/\r?\n/);
-  let currentTag: string | null = null;
   const blocks: ContentBlock[] = [];
-  let sectionChildren: ContentBlock[] = [];
 
-  function flushSection() {
-    if (currentTag && sectionChildren.length > 0) {
-      blocks.push({
-        type: 'section',
-        tag: currentTag,
-        children: [...sectionChildren],
-      });
-      sectionChildren = [];
-    }
-  }
-
-  for (const line of lines) {
+  for (const line of rawText.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-
-    const tagMatch = trimmed.match(TAG_HEADER_RE);
-    if (tagMatch) {
-      flushSection();
-      currentTag = tagMatch[1].trim();
-      continue;
-    }
+    if (/^tags:\s*.+/i.test(trimmed)) continue;
 
     const bulletMatch = trimmed.match(BULLET_RE);
     const content = bulletMatch ? bulletMatch[1].trim() : trimmed;
-
-    if (!currentTag) {
-      blocks.push(...parseInlineBlocks(content));
-      continue;
-    }
-
-    sectionChildren.push(...parseInlineBlocks(content));
+    blocks.push(...parseInlineBlocks(content));
   }
 
-  flushSection();
   return { version: 1, blocks };
 }
 

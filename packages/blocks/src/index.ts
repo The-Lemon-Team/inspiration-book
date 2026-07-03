@@ -1,5 +1,7 @@
 export type * from './types.js';
 export * from './entities.js';
+export * from './hashtags.js';
+export * from './content-types.js';
 export * from './parse-document.js';
 export * from './serialize-document.js';
 export * from './tiptap-document.js';

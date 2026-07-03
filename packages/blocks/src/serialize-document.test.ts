@@ -9,46 +9,52 @@ import {
 import type { MessageDocument } from './types.js';
 
 describe('documentToRawText round-trip', () => {
-  it('serializes sections with bullets', () => {
-    const doc = parseRawTextToDocument(`Узнал:
- - Как варить суп
- - Ссылка https://example.com`);
-    const raw = documentToRawText(doc);
-    assert.match(raw, /Узнал:/);
-    assert.match(raw, /Как варить суп/);
+  it('parses plain text as text blocks', () => {
+    const doc = parseRawTextToDocument(`Привет, мир
+Ещё строка`);
+    assert.equal(doc.blocks.length, 2);
+    assert.equal(doc.blocks[0]?.type, 'text');
+    assert.match(doc.blocks[0]?.type === 'text' ? doc.blocks[0].text : '', /Привет/);
   });
 
-  it('serializes music markers', () => {
+  it('serializes music markers without section header', () => {
     const doc: MessageDocument = {
       version: 1,
       blocks: [
         {
-          type: 'section',
-          tag: 'музыка',
-          children: [
-            {
-              type: 'music',
-              url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-              videoId: 'dQw4w9WgXcQ',
-              title: 'Jazz-hop',
-              display: 'tray',
-            },
-          ],
+          type: 'music',
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          videoId: 'dQw4w9WgXcQ',
+          title: 'Jazz-hop',
+          display: 'tray',
+          contentTypeId: 'music',
+          extraTags: ['vibe', 'lofi'],
         },
       ],
     };
     const raw = documentToRawText(doc);
     assert.match(raw, /\[music:tray\]/);
     assert.match(raw, /Jazz-hop/);
+    assert.match(raw, /tags: #vibe/);
+    assert.doesNotMatch(raw, /^музыка:/m);
   });
 
-  it('round-trips through tiptap json', () => {
-    const source = parseRawTextToDocument(`lo-fi:
- - Фон для работы
- - [music:card]https://www.youtube.com/watch?v=dQw4w9WgXcQ|Lo-fi[/music]`);
+  it('round-trips music through tiptap json', () => {
+    const source: MessageDocument = {
+      version: 1,
+      blocks: [
+        {
+          type: 'music',
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          videoId: 'dQw4w9WgXcQ',
+          title: 'Lo-fi',
+          display: 'card',
+          contentTypeId: 'lofi',
+        },
+      ],
+    };
     const tiptap = messageDocumentToTiptap(source);
     const restored = tiptapToMessageDocument(tiptap);
-    assert.equal(restored.blocks.length, 1);
-    assert.equal(restored.blocks[0]?.type, 'section');
+    assert.equal(restored.blocks[0]?.type, 'music');
   });
 });
