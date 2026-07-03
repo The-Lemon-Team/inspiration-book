@@ -1,5 +1,5 @@
 import type { InjectionKey } from 'vue';
-import type { MusicDisplay } from '@inspiration-book/blocks';
+import type { MusicDisplay, ContentTypeId } from '@inspiration-book/blocks';
 
 export interface MusicBlockFormPayload {
   url: string;
@@ -8,6 +8,7 @@ export interface MusicBlockFormPayload {
   heading?: string;
   description?: string;
   tag: string;
+  contentTypeId: ContentTypeId;
   extraTags?: string[];
   display: MusicDisplay;
 }

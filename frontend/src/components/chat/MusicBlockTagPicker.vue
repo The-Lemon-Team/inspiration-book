@@ -3,13 +3,10 @@ import { computed, ref, watch } from 'vue';
 import type { Tag } from '@/types';
 import {
   formatHashtagTags,
-  normalizeExtraTags,
   parseHashtagInput,
 } from '@/utils/tag-colors';
 
 const props = defineProps<{
-  primaryTag: string;
-  primaryColor: string;
   modelValue: string[];
   userTags?: Tag[];
 }>();
@@ -20,70 +17,51 @@ const emit = defineEmits<{
 
 const tagsInput = ref('');
 
-const extraTags = computed({
-  get: () => normalizeExtraTags(props.primaryTag, props.modelValue),
-  set: (value) => emit('update:modelValue', normalizeExtraTags(props.primaryTag, value)),
-});
-
-const primaryLabel = computed(() => {
-  const name = props.primaryTag.trim().toLowerCase();
-  return name ? `#${name}` : '#музыка';
+const hashtags = computed({
+  get: () => props.modelValue,
+  set: (value) => emit('update:modelValue', value),
 });
 
 function tagsKey(tags: string[]) {
-  return normalizeExtraTags(props.primaryTag, tags).join('\0');
+  return tags.join('\0');
 }
 
 watch(
   () => props.modelValue,
   (value) => {
-    const normalized = normalizeExtraTags(props.primaryTag, value);
-    if (tagsKey(parseHashtagInput(tagsInput.value, props.primaryTag)) !== tagsKey(normalized)) {
-      tagsInput.value = formatHashtagTags(normalized);
+    if (tagsKey(parseHashtagInput(tagsInput.value)) !== tagsKey(value)) {
+      tagsInput.value = formatHashtagTags(value);
     }
   },
   { immediate: true },
 );
 
 function onInput() {
-  extraTags.value = parseHashtagInput(tagsInput.value, props.primaryTag);
+  hashtags.value = parseHashtagInput(tagsInput.value);
 }
 
 function onBlur() {
-  tagsInput.value = formatHashtagTags(extraTags.value);
+  tagsInput.value = formatHashtagTags(hashtags.value);
 }
 </script>
 
 <template>
   <label class="music-tag-picker">
-    <span class="music-tag-picker__label">Теги</span>
+    <span class="music-tag-picker__label">Хештеги</span>
 
-    <div class="music-tag-picker__row">
-      <span
-        class="music-tag-picker__primary"
-        :style="{ color: primaryColor }"
-        :title="`${primaryTag} — основной тег, нельзя убрать`"
-      >
-        <span class="material-symbols-outlined music-tag-picker__lock" aria-hidden="true">
-          lock
-        </span>
-        {{ primaryLabel }}
-      </span>
-
-      <input
-        v-model="tagsInput"
-        type="text"
-        class="music-tag-picker__input"
-        placeholder="#lofi, #todo, #vibe, #vibe_timelapse"
-        spellcheck="false"
-        autocomplete="off"
-        @input="onInput"
-        @blur="onBlur"
-      />
-    </div>
+    <input
+      v-model="tagsInput"
+      type="text"
+      class="music-tag-picker__input music-tag-picker__input--full"
+      placeholder="#vibe, #result, #resume"
+      spellcheck="false"
+      autocomplete="off"
+      @input="onInput"
+      @blur="onBlur"
+    />
 
     <span class="music-tag-picker__hint">
-      Введите дополнительные теги через запятую или пробел
+      Метки для поиска — через запятую или пробел
     </span>
   </label>
 </template>

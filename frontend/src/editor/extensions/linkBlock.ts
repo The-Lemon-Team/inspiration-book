@@ -9,6 +9,7 @@ export const LinkBlockExtension = Node.create({
     return {
       url: { default: '' },
       label: { default: null },
+      contentTypeId: { default: null },
     };
   },
   parseHTML() {

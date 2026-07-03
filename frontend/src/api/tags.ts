@@ -1,4 +1,4 @@
-import type { Tag } from '@/types';
+import type { Tag, TagStatsResponse } from '@/types';
 import { request } from './http';
 
 const API_BASE = '/api/tags';
@@ -6,6 +6,10 @@ const API_BASE = '/api/tags';
 export const tagsApi = {
   list() {
     return request<Tag[]>(API_BASE);
+  },
+
+  getStats() {
+    return request<TagStatsResponse>(`${API_BASE}/stats`);
   },
 
   create(name: string, color?: string) {
