@@ -16,6 +16,7 @@ export const MusicBlockExtension = Node.create({
       heading: { default: null },
       description: { default: null },
       tag: { default: 'Музыка' },
+      contentTypeId: { default: 'music' },
       extraTags: { default: [] },
       display: { default: 'card' },
     };

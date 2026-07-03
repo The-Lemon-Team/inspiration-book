@@ -14,10 +14,14 @@ export interface TextBlock {
   entities?: TextEntity[];
 }
 
+export type ContentTypeId = 'design' | 'lofi' | 'music' | 'video';
+
 export interface LinkBlock {
   type: 'link';
   url: string;
   label?: string;
+  /** Тип контента, напр. «дизайн» — не хештег */
+  contentTypeId?: ContentTypeId;
 }
 
 export interface ImageBlock {
@@ -45,9 +49,11 @@ export interface MusicBlock {
   heading?: string;
   /** Описание под карточкой */
   description?: string;
-  /** Закреплённый тег на карточке, напр. «Музыка» */
+  /** Подпись типа контента на карточке, напр. «Музыка» — не хештег */
   tag?: string;
-  /** Дополнительные теги под заголовком */
+  /** Тип контента: music, lofi и т.д. */
+  contentTypeId?: ContentTypeId;
+  /** Хештеги (#vibe, #resume) */
   extraTags?: string[];
   display: MusicDisplay;
 }

@@ -1,9 +1,13 @@
 export type ContentTemplateForm = 'youtube' | 'link';
 
+import type { ContentTypeId } from '@inspiration-book/blocks';
+
+export type { ContentTypeId };
+
 export interface ContentTemplate {
   id: string;
   chipLabel: string;
-  tagName: string;
+  contentTypeId: ContentTypeId;
   color: string;
   form: ContentTemplateForm;
   title: string;
@@ -31,7 +35,7 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
   {
     id: 'music-youtube',
     chipLabel: 'музыка',
-    tagName: 'музыка',
+    contentTypeId: 'music',
     color: '#7c3aed',
     form: 'youtube',
     title: 'Музыка с YouTube',
@@ -41,7 +45,7 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
   {
     id: 'lofi',
     chipLabel: 'lo-fi',
-    tagName: 'lo-fi',
+    contentTypeId: 'lofi',
     color: '#2563eb',
     form: 'youtube',
     title: 'Lo-fi с YouTube',
@@ -51,7 +55,7 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
   {
     id: 'design',
     chipLabel: 'дизайн',
-    tagName: 'дизайн',
+    contentTypeId: 'design',
     color: '#2563eb',
     form: 'link',
     title: 'Дизайн-референс',

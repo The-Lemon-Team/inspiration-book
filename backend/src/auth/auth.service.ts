@@ -8,7 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { TagsService } from '../tags/tags.service';
+import { ChatsService } from '../chats/chats.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -23,7 +23,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
-    private readonly tagsService: TagsService,
+    private readonly chatsService: ChatsService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -43,7 +43,7 @@ export class AuthService {
       },
     });
 
-    await this.tagsService.seedDefaultTags(user.id);
+    await this.chatsService.seedForUser(user.id);
 
     return this.buildAuthResponse(user);
   }

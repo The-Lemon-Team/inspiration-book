@@ -8,7 +8,7 @@ import { MusicBlockExtension } from './musicBlock';
 import { SectionBlockExtension } from './sectionBlock';
 import { YoutubeBlockExtension } from './youtubeBlock';
 
-export function createChatEditorExtensions(placeholder = 'Введите сообщение или выберите тег…') {
+export function createChatEditorExtensions(placeholder = 'Сообщение…') {
   return [
     ChatDocument,
     StarterKit.configure({

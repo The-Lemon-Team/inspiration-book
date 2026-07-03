@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import {
   extractYoutubeVideoId,
   youtubeWatchUrl,
@@ -105,7 +105,30 @@ function close() {
   emit('close');
 }
 
+function onEscapeKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  close();
+}
+
+watch(
+  () => props.open && props.template,
+  (isOpen) => {
+    if (isOpen) {
+      document.addEventListener('keydown', onEscapeKeydown, true);
+    } else {
+      document.removeEventListener('keydown', onEscapeKeydown, true);
+    }
+  },
+  { immediate: true },
+);
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onEscapeKeydown, true);
+});
+
 function buildPayload(): MusicBlockFormPayload {
+  const template = props.template!;
   return {
     url: previewUrl.value,
     videoId: videoId.value!,
@@ -113,6 +136,9 @@ function buildPayload(): MusicBlockFormPayload {
     heading: heading.value.trim() || undefined,
     description: description.value.trim() || undefined,
     tag: cardTag.value,
+    contentTypeId: isEditMode.value && props.initial?.contentTypeId
+      ? props.initial.contentTypeId
+      : template.contentTypeId,
     extraTags: extraTags.value.length ? [...extraTags.value] : undefined,
     display: display.value,
   };
@@ -163,14 +189,12 @@ function submit() {
                 class="music-modal__input"
               />
               <span class="music-modal__field-hint">
-                Отображается над карточкой. Основной тег «{{ cardTag }}» закреплён на карточке.
+                Отображается над карточкой. Тип контента: {{ cardTag }}.
               </span>
             </label>
 
             <MusicBlockTagPicker
               v-model="extraTags"
-              :primary-tag="cardTag"
-              :primary-color="template.color"
               :user-tags="userTags"
             />
           </div>

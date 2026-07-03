@@ -1,0 +1,121 @@
+<script setup lang="ts">
+import { ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import SettingsPanel from '@/components/settings/SettingsPanel.vue';
+
+const props = defineProps<{ open: boolean }>();
+
+const emit = defineEmits<{ close: [] }>();
+
+type View = 'menu' | 'settings';
+
+const router = useRouter();
+const view = ref<View>('menu');
+
+function closeModal() {
+  view.value = 'menu';
+  emit('close');
+}
+
+function openGraph() {
+  closeModal();
+  router.push('/graph');
+}
+
+function openGroups() {
+  closeModal();
+  router.push('/groups');
+}
+
+function openSettings() {
+  view.value = 'settings';
+}
+
+function backToMenu() {
+  view.value = 'menu';
+}
+
+watch(
+  () => props.open,
+  (open) => {
+    if (open) view.value = 'menu';
+  },
+);
+</script>
+
+<template>
+  <div v-if="open" class="more-modal">
+    <div class="more-modal__backdrop" @click="closeModal" />
+
+    <section
+      class="more-modal__dialog"
+      :class="{ 'more-modal__dialog--wide': view === 'settings' }"
+      role="dialog"
+      :aria-labelledby="view === 'settings' ? 'more-settings-title' : 'more-menu-title'"
+    >
+      <template v-if="view === 'menu'">
+        <header class="more-modal__head">
+          <h2 id="more-menu-title" class="more-modal__title">Ещё</h2>
+          <button type="button" class="more-modal__close" aria-label="Закрыть" @click="closeModal">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <ul class="more-modal__list">
+          <li>
+            <button type="button" class="more-modal__row" @click="openGroups">
+              <span class="more-modal__row-icon more-modal__row-icon--groups">
+                <span class="material-symbols-outlined">account_tree</span>
+              </span>
+              <span class="more-modal__row-text">
+                <span class="more-modal__row-name">Группы</span>
+                <span class="more-modal__row-meta">Иерархии и коллекции чатов</span>
+              </span>
+              <span class="material-symbols-outlined more-modal__row-chevron">chevron_right</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="more-modal__row" @click="openGraph">
+              <span class="more-modal__row-icon more-modal__row-icon--graph">
+                <span class="material-symbols-outlined">graph_5</span>
+              </span>
+              <span class="more-modal__row-text">
+                <span class="more-modal__row-name">Graph</span>
+                <span class="more-modal__row-meta">Визуализация связей чатов</span>
+              </span>
+              <span class="material-symbols-outlined more-modal__row-chevron">chevron_right</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="more-modal__row" @click="openSettings">
+              <span class="more-modal__row-icon more-modal__row-icon--settings">
+                <span class="material-symbols-outlined">settings</span>
+              </span>
+              <span class="more-modal__row-text">
+                <span class="more-modal__row-name">Настройки</span>
+                <span class="more-modal__row-meta">Интерфейс и аккаунт</span>
+              </span>
+              <span class="material-symbols-outlined more-modal__row-chevron">chevron_right</span>
+            </button>
+          </li>
+        </ul>
+      </template>
+
+      <template v-else>
+        <header class="more-modal__head">
+          <button type="button" class="more-modal__back" aria-label="Назад" @click="backToMenu">
+            <span class="material-symbols-outlined">arrow_back</span>
+          </button>
+          <h2 id="more-settings-title" class="more-modal__title">Настройки</h2>
+          <button type="button" class="more-modal__close" aria-label="Закрыть" @click="closeModal">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </header>
+
+        <div class="more-modal__body">
+          <SettingsPanel />
+        </div>
+      </template>
+    </section>
+  </div>
+</template>

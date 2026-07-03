@@ -7,6 +7,7 @@ import {
   isDocumentEmpty,
   messageDocumentToTiptap,
   tiptapToMessageDocument,
+  type ContentTypeId,
   type GalleryImage,
   type MessageDocument,
   type MusicDisplay,
@@ -58,6 +59,7 @@ function clear() {
 
 function insertMusicBlock(options: {
   tag?: string;
+  contentTypeId?: ContentTypeId;
   extraTags?: string[];
   url: string;
   videoId: string;
@@ -78,31 +80,12 @@ function insertMusicBlock(options: {
         heading: options.heading ?? null,
         description: options.description ?? null,
         tag: options.tag ?? 'Музыка',
+        contentTypeId: options.contentTypeId ?? 'music',
         extraTags: options.extraTags?.length ? options.extraTags : [],
         display: options.display,
       },
     })
     .run();
-}
-
-/** @deprecated use insertMusicBlock */
-function insertMusicSection(options: {
-  tagName: string;
-  tagColor?: string;
-  note?: string;
-  url: string;
-  videoId: string;
-  title?: string;
-  display: MusicDisplay;
-}) {
-  insertMusicBlock({
-    tag: options.tagName,
-    url: options.url,
-    videoId: options.videoId,
-    title: options.title,
-    heading: options.note,
-    display: options.display,
-  });
 }
 
 function insertGallery(images: GalleryImage[]) {
@@ -134,47 +117,29 @@ function insertImages(urls: string[]) {
 }
 
 function insertLinkSection(options: {
-  tagName: string;
-  tagColor?: string;
   note?: string;
   url: string;
+  contentTypeId?: ContentTypeId;
 }) {
-  const sectionContent: Record<string, unknown>[] = [];
+  const nodes: Record<string, unknown>[] = [];
 
   if (options.note?.trim()) {
-    sectionContent.push({
-      type: 'bulletList',
-      content: [
-        {
-          type: 'listItem',
-          content: [
-            {
-              type: 'paragraph',
-              content: [{ type: 'text', text: options.note.trim() }],
-            },
-          ],
-        },
-      ],
+    nodes.push({
+      type: 'paragraph',
+      content: [{ type: 'text', text: options.note.trim() }],
     });
   }
 
-  sectionContent.push({
+  nodes.push({
     type: 'linkBlock',
-    attrs: { url: options.url, label: options.url },
+    attrs: {
+      url: options.url,
+      label: options.url,
+      contentTypeId: options.contentTypeId ?? null,
+    },
   });
 
-  editor.value
-    ?.chain()
-    .focus('end')
-    .insertContent({
-      type: 'sectionBlock',
-      attrs: {
-        tag: options.tagName,
-        tagColor: options.tagColor ?? null,
-      },
-      content: sectionContent,
-    })
-    .run();
+  editor.value?.chain().focus('end').insertContent(nodes).run();
 }
 
 defineExpose({
@@ -183,7 +148,6 @@ defineExpose({
   isEmpty,
   clear,
   insertMusicBlock,
-  insertMusicSection,
   insertGallery,
   insertImages,
   insertLinkSection,

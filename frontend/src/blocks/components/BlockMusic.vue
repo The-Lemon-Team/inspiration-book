@@ -82,7 +82,7 @@ function chipStyle(name: string) {
         class="block-music-wrap__tag-chip"
         :style="chipStyle(tagName)"
       >
-        {{ tagName }}
+        #{{ tagName.replace(/^#+/, '') }}
       </span>
     </div>
 

@@ -15,7 +15,7 @@ async function submit() {
   error.value = '';
   try {
     await auth.register(email.value, password.value, name.value || undefined);
-    router.push('/chat');
+    router.push('/chats');
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Ошибка регистрации';
   }

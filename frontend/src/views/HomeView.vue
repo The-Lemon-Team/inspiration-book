@@ -100,7 +100,7 @@ onMounted(async () => {
         Публичных записей ещё нет. Войдите в аккаунт, напишите в чате и отметьте
         запись как публичную — она появится на Борде.
       </p>
-      <RouterLink v-if="auth.isAuthenticated" to="/chat" class="btn-primary">
+      <RouterLink v-if="auth.isAuthenticated" to="/chats" class="btn-primary">
         Перейти в чат
       </RouterLink>
     </div>

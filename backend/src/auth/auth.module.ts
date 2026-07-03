@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TagsModule } from '../tags/tags.module';
+import { ChatsModule } from '../chats/chats.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
@@ -10,6 +11,7 @@ import { JwtStrategy } from './jwt.strategy';
 @Module({
   imports: [
     TagsModule,
+    ChatsModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

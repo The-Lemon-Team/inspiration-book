@@ -1,69 +1,82 @@
 import { Injectable } from '@nestjs/common';
+import {
+  collectHashtagsFromDocument,
+  extractHashtagsFromText,
+  isDocumentEmpty,
+  isMessageDocument,
+  parseHashtagList,
+} from '@inspiration-book/blocks';
 import { TagsService } from '../tags/tags.service';
 
 export interface ParsedEntry {
   content: string;
-  tagName: string;
+  tagId: string;
 }
 
 @Injectable()
 export class EntryParserService {
   constructor(private readonly tagsService: TagsService) {}
 
-  async parseForUser(userId: string, rawText: string) {
-    const lines = rawText.split(/\r?\n/);
-    let currentTagName: string | null = null;
-    const entries: ParsedEntry[] = [];
+  /** Индексирует только хештеги (#vibe) — не парсит секции и списки. */
+  async parseForUser(
+    userId: string,
+    rawText: string,
+    content?: Record<string, unknown>,
+  ): Promise<ParsedEntry[]> {
+    const hashtagNames = new Map<string, string>();
 
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        continue;
-      }
-
-      const tagHeaderMatch = trimmed.match(/^([^:]+):\s*$/);
-      if (tagHeaderMatch) {
-        currentTagName = tagHeaderMatch[1].trim();
-        continue;
-      }
-
-      const bulletMatch = trimmed.match(/^[-•*]\s+(.+)$/);
-      if (bulletMatch && currentTagName) {
-        entries.push({
-          content: bulletMatch[1].trim(),
-          tagName: currentTagName,
-        });
-        continue;
-      }
-
-      const imageMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
-      if (imageMatch) {
-        const tagName: string = currentTagName ?? 'Заметка';
-        entries.push({ content: trimmed, tagName });
-        currentTagName = tagName;
-        continue;
-      }
-
-      if (currentTagName) {
-        entries.push({
-          content: trimmed,
-          tagName: currentTagName,
-        });
+    function rememberHashtag(name: string) {
+      const key = name.toLowerCase();
+      if (!hashtagNames.has(key)) {
+        hashtagNames.set(key, name);
       }
     }
 
-    const resolved = [];
-    for (const entry of entries) {
-      const tag = await this.tagsService.findOrCreateByHeader(
-        userId,
-        entry.tagName,
-      );
-      if (!tag) {
-        continue;
+    for (const line of rawText.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      const tagsLineMatch = trimmed.match(/^tags:\s*(.+)$/i);
+      if (tagsLineMatch) {
+        for (const name of parseHashtagList(tagsLineMatch[1])) {
+          rememberHashtag(name);
+        }
       }
-      resolved.push({ content: entry.content, tagId: tag.id });
+    }
+
+    for (const name of extractHashtagsFromText(rawText)) {
+      rememberHashtag(name);
+    }
+
+    if (isMessageDocument(content)) {
+      for (const name of collectHashtagsFromDocument(content)) {
+        rememberHashtag(name);
+      }
+    }
+
+    const resolved: ParsedEntry[] = [];
+    for (const name of hashtagNames.values()) {
+      const tag = await this.tagsService.findOrCreateByHeader(userId, name);
+      if (!tag) continue;
+      resolved.push({ content: `#${name}`, tagId: tag.id });
     }
 
     return resolved;
+  }
+
+  hasMessageBody(rawText: string, content?: Record<string, unknown>) {
+    if (isMessageDocument(content) && !isDocumentEmpty(content)) {
+      return true;
+    }
+
+    const trimmed = rawText.trim();
+    if (!trimmed) return false;
+
+    const withoutMeta = trimmed
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !/^tags:\s*.+/i.test(line))
+      .join('\n')
+      .trim();
+
+    return Boolean(withoutMeta);
   }
 }

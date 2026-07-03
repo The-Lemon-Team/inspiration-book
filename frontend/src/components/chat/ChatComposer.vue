@@ -109,8 +109,7 @@ function onMusicSave(payload: MusicBlockFormPayload) {
 
 function insertLinkTemplate(template: ContentTemplate, data: { url: string; note: string }) {
   editorRef.value?.insertLinkSection({
-    tagName: template.tagName,
-    tagColor: template.color,
+    contentTypeId: template.contentTypeId,
     note: data.note,
     url: data.url,
   });

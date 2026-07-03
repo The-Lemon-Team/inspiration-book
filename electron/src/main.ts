@@ -15,7 +15,7 @@ function createWindow() {
     height: 860,
     minWidth: 900,
     minHeight: 640,
-    title: 'Inspiration Book',
+    title: 'Lemon Party',
     backgroundColor: '#f3f4f6',
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
@@ -25,9 +25,9 @@ function createWindow() {
   });
 
   if (isDev) {
-    win.loadURL(`${FRONTEND_URL}/chat`);
+    win.loadURL(`${FRONTEND_URL}/welcome`);
   } else {
-    win.loadFile(frontendIndexPath(), { hash: '/chat' });
+    win.loadFile(frontendIndexPath(), { hash: '/welcome' });
   }
 
   win.webContents.setWindowOpenHandler(({ url }) => {

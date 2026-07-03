@@ -2,7 +2,7 @@
 import { inject } from 'vue';
 import { NodeViewWrapper } from '@tiptap/vue-3';
 import type { NodeViewProps } from '@tiptap/vue-3';
-import type { MusicDisplay } from '@inspiration-book/blocks';
+import type { MusicDisplay, ContentTypeId } from '@inspiration-book/blocks';
 import BlockMusic from '@/blocks/components/BlockMusic.vue';
 import {
   musicBlockEditorKey,
@@ -21,6 +21,9 @@ function currentPayload(): MusicBlockFormPayload {
     heading: props.node.attrs.heading ? String(props.node.attrs.heading) : undefined,
     description: props.node.attrs.description ? String(props.node.attrs.description) : undefined,
     tag: props.node.attrs.tag ? String(props.node.attrs.tag) : 'Музыка',
+    contentTypeId: (props.node.attrs.contentTypeId
+      ? String(props.node.attrs.contentTypeId)
+      : 'music') as ContentTypeId,
     extraTags: Array.isArray(props.node.attrs.extraTags)
       ? (props.node.attrs.extraTags as string[]).map(String)
       : [],
@@ -38,6 +41,7 @@ function openEdit() {
       heading: updated.heading ?? null,
       description: updated.description ?? null,
       tag: updated.tag,
+      contentTypeId: updated.contentTypeId,
       extraTags: updated.extraTags ?? [],
       display: updated.display,
     });

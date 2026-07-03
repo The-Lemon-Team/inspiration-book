@@ -20,6 +20,7 @@ import {
 import { CreateMessageDto } from './dto/create-message.dto';
 import { QueryEntriesDto } from './dto/query-entries.dto';
 import { PublishMessageDto } from './dto/publish-message.dto';
+import { ReplayMessageDto } from './dto/replay-message.dto';
 import { SetPublicDto } from './dto/set-public.dto';
 import { EntriesService } from './entries.service';
 
@@ -46,8 +47,30 @@ export class EntriesController {
 
   @Get('messages')
   @UseGuards(JwtAuthGuard)
-  getMessages(@CurrentUser() user: AuthUser | null) {
-    return this.entriesService.getMessages(user!.id);
+  getMessages(
+    @CurrentUser() user: AuthUser | null,
+    @Query('chatId') chatId?: string,
+  ) {
+    return this.entriesService.getMessages(user!.id, chatId);
+  }
+
+  @Post('messages/:id/share-to-general')
+  @UseGuards(JwtAuthGuard)
+  shareToGeneral(
+    @CurrentUser() user: AuthUser | null,
+    @Param('id') id: string,
+  ) {
+    return this.entriesService.shareMessageToGeneral(user!.id, id);
+  }
+
+  @Post('messages/:id/replay')
+  @UseGuards(JwtAuthGuard)
+  replayMessage(
+    @CurrentUser() user: AuthUser | null,
+    @Param('id') id: string,
+    @Body() dto: ReplayMessageDto,
+  ) {
+    return this.entriesService.replayMessage(user!.id, id, dto);
   }
 
   @Patch('messages/:id/publish')

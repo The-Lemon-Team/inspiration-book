@@ -79,35 +79,40 @@ watch(
       <p class="caption">Все ваши публикации</p>
     </header>
 
-    <div class="filter-row">
-      <button
-        class="filter-chip"
-        :class="{ active: !tagId }"
-        @click="tagId = ''; loadTimeline()"
-      >
-        все теги
-      </button>
-      <button
-        v-for="tag in filterTags"
-        :key="tag.id"
-        class="filter-chip"
-        :class="{ active: tagId === tag.id }"
-        @click="tagId = tag.id; loadTimeline()"
-      >
-        {{ tag.name }}
-      </button>
-    </div>
+    <div class="page-filters">
+      <div class="filter-row" aria-label="Фильтр по тегам">
+        <button
+          type="button"
+          class="filter-chip"
+          :class="{ active: !tagId }"
+          @click="tagId = ''; loadTimeline()"
+        >
+          все теги
+        </button>
+        <button
+          v-for="tag in filterTags"
+          :key="tag.id"
+          type="button"
+          class="filter-chip"
+          :class="{ active: tagId === tag.id }"
+          @click="tagId = tag.id; loadTimeline()"
+        >
+          {{ tag.name }}
+        </button>
+      </div>
 
-    <div class="filter-row">
-      <button
-        v-for="option in ['all', 'public', 'private'] as const"
-        :key="option"
-        class="filter-chip"
-        :class="{ active: visibility === option }"
-        @click="visibility = option; loadTimeline()"
-      >
-        {{ option === 'all' ? 'все' : option === 'public' ? 'публичные' : 'приватные' }}
-      </button>
+      <div class="filter-row" aria-label="Видимость записей">
+        <button
+          v-for="option in ['all', 'public', 'private'] as const"
+          :key="option"
+          type="button"
+          class="filter-chip"
+          :class="{ active: visibility === option }"
+          @click="visibility = option; loadTimeline()"
+        >
+          {{ option === 'all' ? 'все' : option === 'public' ? 'публичные' : 'приватные' }}
+        </button>
+      </div>
     </div>
 
     <p v-if="loading" class="muted">Загрузка…</p>

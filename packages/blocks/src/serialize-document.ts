@@ -3,18 +3,23 @@ import { serializeMusicMarker } from './music.js';
 import type { ContentBlock, MessageDocument, MusicBlock } from './types.js';
 import { serializeYoutubeMarker } from './youtube.js';
 
+function formatHashtagList(tags: string[]): string {
+  return tags
+    .map((tag) => (tag.startsWith('#') ? tag : `#${tag}`))
+    .join(', ');
+}
+
 function musicBlockToRawLines(block: MusicBlock): string[] {
-  const tag = block.tag || 'музыка';
-  const lines = [`${tag}:`];
+  const lines: string[] = [];
   if (block.heading?.trim()) {
-    lines.push(` - ${block.heading.trim()}`);
+    lines.push(block.heading.trim());
   }
-  lines.push(` - ${serializeMusicMarker(block.url, block.display, block.title)}`);
+  lines.push(serializeMusicMarker(block.url, block.display, block.title));
   if (block.description?.trim()) {
-    lines.push(` - ${block.description.trim()}`);
+    lines.push(block.description.trim());
   }
   if (block.extraTags?.length) {
-    lines.push(` - tags: ${block.extraTags.join(', ')}`);
+    lines.push(`tags: ${formatHashtagList(block.extraTags)}`);
   }
   return lines;
 }
