@@ -43,11 +43,14 @@ export class EntriesService {
   ) {}
 
   async createMessage(userId: string, dto: CreateMessageDto) {
-    const parsed = await this.parser.parseForUser(userId, dto.rawText);
-    if (parsed.length === 0) {
-      throw new BadRequestException(
-        'Не удалось распознать записи. Используйте формат: "Узнал:" или "lo-fi:" и строки с "- пункт".',
-      );
+    const content = resolveMessageContent(dto.rawText, dto.content);
+    const parsed = await this.parser.parseForUser(
+      userId,
+      dto.rawText,
+      content as unknown as Record<string, unknown>,
+    );
+    if (parsed.length === 0 && !this.parser.hasMessageBody(dto.rawText, content as unknown as Record<string, unknown>)) {
+      throw new BadRequestException('Сообщение пустое.');
     }
 
     const chat = dto.chatId
@@ -55,7 +58,6 @@ export class EntriesService {
       : await this.chatsService.getGeneralChat(userId);
 
     const isPublic = dto.isPublic ?? false;
-    const content = resolveMessageContent(dto.rawText, dto.content);
 
     return this.prisma.$transaction(async (tx) => {
       const message = await tx.message.create({
@@ -341,15 +343,24 @@ export class EntriesService {
       );
     }
 
-    const parsed = await this.parser.parseForUser(userId, source.rawText);
-    if (parsed.length === 0) {
-      throw new BadRequestException('Не удалось скопировать сообщение');
-    }
-
     const content = resolveMessageContent(
       source.rawText,
       source.content as Record<string, unknown> | undefined,
     );
+    const parsed = await this.parser.parseForUser(
+      userId,
+      source.rawText,
+      content as unknown as Record<string, unknown>,
+    );
+    if (
+      parsed.length === 0 &&
+      !this.parser.hasMessageBody(
+        source.rawText,
+        content as unknown as Record<string, unknown>,
+      )
+    ) {
+      throw new BadRequestException('Не удалось скопировать сообщение');
+    }
 
     const flowMeta = {
       kind: 'REPLAY_UP',
@@ -409,8 +420,22 @@ export class EntriesService {
       throw new BadRequestException('У этого чата нет дочерних чатов для рассылки');
     }
 
-    const parsed = await this.parser.parseForUser(userId, source.rawText);
-    if (parsed.length === 0) {
+    const baseContent = resolveMessageContent(
+      source.rawText,
+      source.content as Record<string, unknown> | undefined,
+    );
+    const parsed = await this.parser.parseForUser(
+      userId,
+      source.rawText,
+      baseContent as unknown as Record<string, unknown>,
+    );
+    if (
+      parsed.length === 0 &&
+      !this.parser.hasMessageBody(
+        source.rawText,
+        baseContent as unknown as Record<string, unknown>,
+      )
+    ) {
       throw new BadRequestException('Не удалось скопировать сообщение');
     }
 

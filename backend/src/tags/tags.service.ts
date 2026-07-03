@@ -27,6 +27,124 @@ export class TagsService {
     });
   }
 
+  async getStats(userId: string, topLimit = 12, recentLimit = 20) {
+    const [tags, entryGroups, recentEntries, recentMessages, totalMessages] =
+      await Promise.all([
+        this.prisma.tag.findMany({ where: { userId } }),
+        this.prisma.entry.groupBy({
+          by: ['tagId'],
+          where: { userId },
+          _count: { id: true },
+          _max: { createdAt: true },
+        }),
+        this.prisma.entry.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+          take: recentLimit,
+          include: {
+            tag: true,
+            message: {
+              select: {
+                id: true,
+                chatId: true,
+                chat: { select: { id: true, name: true, slug: true, kind: true } },
+              },
+            },
+          },
+        }),
+        this.prisma.message.findMany({
+          where: { userId, entries: { some: {} } },
+          orderBy: { createdAt: 'desc' },
+          take: recentLimit,
+          include: {
+            chat: { select: { id: true, name: true, slug: true, kind: true } },
+            entries: {
+              orderBy: { createdAt: 'asc' },
+              include: { tag: true },
+            },
+          },
+        }),
+        this.prisma.message.count({
+          where: { userId, entries: { some: {} } },
+        }),
+      ]);
+
+    const tagMap = new Map(tags.map((tag) => [tag.id, tag]));
+    const mentionedTagIds = entryGroups.map((group) => group.tagId);
+
+    const messageCountRows = mentionedTagIds.length
+      ? await this.prisma.entry.findMany({
+          where: {
+            userId,
+            tagId: { in: mentionedTagIds },
+            messageId: { not: null },
+          },
+          select: { tagId: true, messageId: true },
+          distinct: ['tagId', 'messageId'],
+        })
+      : [];
+
+    const messageCountByTag = new Map<string, number>();
+    for (const row of messageCountRows) {
+      messageCountByTag.set(
+        row.tagId,
+        (messageCountByTag.get(row.tagId) ?? 0) + 1,
+      );
+    }
+
+    const topTags = entryGroups
+      .map((group) => {
+        const tag = tagMap.get(group.tagId);
+        if (!tag) return null;
+        return {
+          tag,
+          entryCount: group._count.id,
+          messageCount: messageCountByTag.get(group.tagId) ?? 0,
+          lastMentionedAt: group._max.createdAt?.toISOString() ?? null,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item))
+      .sort((a, b) => b.entryCount - a.entryCount)
+      .slice(0, topLimit);
+
+    const totalMentions = entryGroups.reduce(
+      (sum, group) => sum + group._count.id,
+      0,
+    );
+
+    return {
+      summary: {
+        mentionedTags: entryGroups.length,
+        totalMentions,
+        totalMessages,
+      },
+      topTags,
+      recentMentions: recentEntries.map((entry) => ({
+        id: entry.id,
+        content: entry.content,
+        createdAt: entry.createdAt.toISOString(),
+        tag: entry.tag,
+        messageId: entry.messageId,
+        chat: entry.message?.chat ?? null,
+      })),
+      recentMessages: recentMessages.map((message) => ({
+        id: message.id,
+        rawText: message.rawText,
+        createdAt: message.createdAt.toISOString(),
+        chat: message.chat,
+        entries: message.entries.map((entry) => ({
+          id: entry.id,
+          content: entry.content,
+          createdAt: entry.createdAt.toISOString(),
+          tag: entry.tag,
+        })),
+        tags: Array.from(
+          new Map(message.entries.map((entry) => [entry.tag.id, entry.tag])).values(),
+        ),
+      })),
+    };
+  }
+
   async list(userId: string) {
     const tags = await this.prisma.tag.findMany({
       where: { userId },

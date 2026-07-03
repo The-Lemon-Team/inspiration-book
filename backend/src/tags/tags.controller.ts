@@ -25,6 +25,11 @@ export class TagsController {
     return this.tagsService.list(user!.id);
   }
 
+  @Get('stats')
+  stats(@CurrentUser() user: AuthUser | null) {
+    return this.tagsService.getStats(user!.id);
+  }
+
   @Post()
   create(@CurrentUser() user: AuthUser | null, @Body() dto: CreateTagDto) {
     return this.tagsService.create(user!.id, dto);

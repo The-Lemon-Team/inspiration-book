@@ -199,12 +199,21 @@ export class ReplayScheduleService {
       sections,
     );
 
-    const parsed = await this.parser.parseForUser(schedule.userId, rawText);
-    if (parsed.length === 0) {
+    const content = buildMessageDocument(rawText);
+    const parsed = await this.parser.parseForUser(
+      schedule.userId,
+      rawText,
+      content as unknown as Record<string, unknown>,
+    );
+    if (
+      parsed.length === 0 &&
+      !this.parser.hasMessageBody(
+        rawText,
+        content as unknown as Record<string, unknown>,
+      )
+    ) {
       throw new BadRequestException('Не удалось собрать сводку');
     }
-
-    const content = buildMessageDocument(rawText);
     const totalEntries = sections.reduce(
       (sum, section) => sum + section.entries.length,
       0,
@@ -329,9 +338,8 @@ export class ReplayScheduleService {
 
     for (const section of sections) {
       lines.push(`${section.chatName}:`);
-      lines.push(`${signalTagName}:`);
       for (const entry of section.entries) {
-        lines.push(` - ${entry.content}`);
+        lines.push(entry.content);
       }
       lines.push('');
     }

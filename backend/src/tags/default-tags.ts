@@ -1,3 +1,4 @@
+/** Legacy: Узнал, Вспомнил, Сделать — больше не создаются для новых пользователей */
 export const DEFAULT_TAGS = [
   { name: 'Узнал', slug: 'uznal', color: '#2563eb' },
   { name: 'Вспомнил', slug: 'vspomnil', color: '#7c3aed' },
