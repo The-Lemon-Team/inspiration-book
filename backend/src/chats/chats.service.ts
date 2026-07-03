@@ -4,10 +4,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ChatKind, ChatLinkDirection } from '@prisma/client';
+import {
+  detectContentTypeIds,
+  documentFromStored,
+  type MessageDocument,
+} from '@inspiration-book/blocks';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateChatCollectionDto } from './dto/create-chat-collection.dto';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { CreateUpwardGrantDto } from './dto/create-upward-grant.dto';
+import { UpdateChatCollectionDto } from './dto/update-chat-collection.dto';
 
 function slugify(value: string): string {
   return value
@@ -59,6 +65,18 @@ export type UpwardGrantItem = {
   createdAt: string;
 };
 
+export type ContentTypeSummaryItem = {
+  id: 'design' | 'lofi' | 'music' | 'video';
+  label: string;
+  count: number;
+};
+
+export type ChatContentSummary = {
+  chatId: string;
+  totalMessages: number;
+  types: ContentTypeSummaryItem[];
+};
+
 @Injectable()
 export class ChatsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -75,28 +93,50 @@ export class ChatsService {
         slug: 'general',
         kind: ChatKind.GENERAL,
         userId,
+        isPinned: true,
         sortOrder: 0,
       },
     });
   }
 
   async listForUser(userId: string) {
-    const [collections, chats] = await Promise.all([
+    const [collectionsRaw, chatsRaw, lastMessageAtByChatId] = await Promise.all([
       this.prisma.chatCollection.findMany({
         where: { userId },
-        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-        include: {
-          chats: {
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          },
-        },
+        include: { chats: true },
       }),
       this.prisma.chat.findMany({
         where: { userId },
         orderBy: [{ isPinned: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
         include: { collection: true, parentChat: true },
       }),
+      this.getLastMessageAtByChatId(userId),
     ]);
+
+    const attachLastMessageAt = <T extends { id: string; createdAt: Date }>(chat: T) => ({
+      ...chat,
+      lastMessageAt: (
+        lastMessageAtByChatId.get(chat.id) ?? chat.createdAt
+      ).toISOString(),
+    });
+
+    const chats = chatsRaw.map(attachLastMessageAt);
+
+    const collections = collectionsRaw
+      .map((collection) => {
+        const collectionChats = collection.chats
+          .map(attachLastMessageAt)
+          .sort((a, b) => this.compareByRecency(a, b));
+
+        const lastMessageAt = collectionChats[0]?.lastMessageAt ?? collection.createdAt.toISOString();
+
+        return {
+          ...collection,
+          chats: collectionChats,
+          lastMessageAt,
+        };
+      })
+      .sort((a, b) => this.compareByRecency(a, b));
 
     const general = chats.find((chat) => chat.kind === ChatKind.GENERAL) ?? null;
     const standalone = chats.filter(
@@ -137,6 +177,77 @@ export class ChatsService {
         userId,
         sortOrder: count,
       },
+    });
+  }
+
+  async findOwnedCollection(userId: string, collectionId: string) {
+    const collection = await this.prisma.chatCollection.findFirst({
+      where: { id: collectionId, userId },
+    });
+    if (!collection) {
+      throw new NotFoundException('Группа чатов не найдена');
+    }
+    return collection;
+  }
+
+  async updateCollection(
+    userId: string,
+    collectionId: string,
+    dto: UpdateChatCollectionDto,
+  ) {
+    const collection = await this.findOwnedCollection(userId, collectionId);
+    const name = dto.name.trim();
+    const slug =
+      name === collection.name
+        ? collection.slug
+        : await uniqueSlug(this.prisma, userId, name, 'collection');
+
+    return this.prisma.chatCollection.update({
+      where: { id: collectionId },
+      data: { name, slug },
+    });
+  }
+
+  async deleteCollection(userId: string, collectionId: string) {
+    await this.findOwnedCollection(userId, collectionId);
+    await this.prisma.chatCollection.delete({ where: { id: collectionId } });
+    return { ok: true };
+  }
+
+  async setCollection(
+    userId: string,
+    chatId: string,
+    collectionId: string | null | undefined,
+  ) {
+    const chat = await this.findOwnedChat(userId, chatId);
+    if (chat.kind === ChatKind.GENERAL) {
+      throw new BadRequestException('General нельзя добавить в группу');
+    }
+
+    const nextCollectionId = collectionId ?? null;
+    if (nextCollectionId === chat.collectionId) {
+      return this.prisma.chat.findUniqueOrThrow({
+        where: { id: chatId },
+        include: { collection: true, parentChat: true },
+      });
+    }
+
+    if (nextCollectionId) {
+      await this.findOwnedCollection(userId, nextCollectionId);
+    }
+
+    const count = await this.prisma.chat.count({
+      where: { userId, collectionId: nextCollectionId },
+    });
+
+    return this.prisma.chat.update({
+      where: { id: chatId },
+      data: {
+        collectionId: nextCollectionId,
+        isPinned: nextCollectionId ? false : chat.isPinned,
+        sortOrder: nextCollectionId ? count : chat.sortOrder,
+      },
+      include: { collection: true, parentChat: true },
     });
   }
 
@@ -225,10 +336,10 @@ export class ChatsService {
 
   async setPin(userId: string, chatId: string, pinned: boolean) {
     const chat = await this.findOwnedChat(userId, chatId);
-    if (chat.kind === ChatKind.GENERAL) {
-      return chat;
-    }
-    if (chat.collectionId || chat.parentChatId) {
+    if (
+      chat.kind !== ChatKind.GENERAL &&
+      (chat.collectionId || chat.parentChatId)
+    ) {
       throw new BadRequestException(
         'Закрепление доступно только для самостоятельных чатов',
       );
@@ -237,9 +348,11 @@ export class ChatsService {
     const pinnedCount = await this.prisma.chat.count({
       where: {
         userId,
-        kind: ChatKind.REGULAR,
-        parentChatId: null,
         isPinned: true,
+        OR: [
+          { kind: ChatKind.GENERAL },
+          { kind: ChatKind.REGULAR, parentChatId: null },
+        ],
       },
     });
 
@@ -484,6 +597,71 @@ export class ChatsService {
     };
   }
 
+  async getContentSummary(userId: string, chatId: string): Promise<ChatContentSummary> {
+    await this.findOwnedChat(userId, chatId);
+
+    const messages = await this.prisma.message.findMany({
+      where: { userId, chatId },
+      select: {
+        rawText: true,
+        content: true,
+      },
+    });
+
+    const counts: Record<ContentTypeSummaryItem['id'], number> = {
+      design: 0,
+      lofi: 0,
+      music: 0,
+      video: 0,
+    };
+
+    for (const message of messages) {
+      const document = documentFromStored(
+        message.content as MessageDocument | null,
+        message.rawText,
+      );
+      for (const typeId of detectContentTypeIds(document, message.rawText)) {
+        counts[typeId] += 1;
+      }
+    }
+
+    return {
+      chatId,
+      totalMessages: messages.length,
+      types: [
+        { id: 'design', label: 'Дизайн', count: counts.design },
+        { id: 'lofi', label: 'Lo-fi', count: counts.lofi },
+        { id: 'music', label: 'Музыка', count: counts.music },
+        { id: 'video', label: 'Видео', count: counts.video },
+      ],
+    };
+  }
+
+  private async getLastMessageAtByChatId(userId: string) {
+    const rows = await this.prisma.message.groupBy({
+      by: ['chatId'],
+      where: { userId },
+      _max: { createdAt: true },
+    });
+
+    const map = new Map<string, Date>();
+    for (const row of rows) {
+      if (row._max.createdAt) {
+        map.set(row.chatId, row._max.createdAt);
+      }
+    }
+    return map;
+  }
+
+  private compareByRecency(
+    a: { lastMessageAt?: string | Date | null; createdAt?: string | Date | null },
+    b: { lastMessageAt?: string | Date | null; createdAt?: string | Date | null },
+  ) {
+    const aTs = new Date(a.lastMessageAt ?? a.createdAt ?? 0).getTime();
+    const bTs = new Date(b.lastMessageAt ?? b.createdAt ?? 0).getTime();
+    return bTs - aTs;
+  }
+
   private async validateParentAssignment(
     userId: string,
     chatId: string | null,
@@ -511,8 +689,10 @@ export class ChatsService {
     const standalone = await this.prisma.chat.findMany({
       where: {
         userId,
-        kind: ChatKind.REGULAR,
-        parentChatId: null,
+        OR: [
+          { kind: ChatKind.GENERAL },
+          { kind: ChatKind.REGULAR, parentChatId: null },
+        ],
       },
       orderBy: [
         { isPinned: 'desc' },

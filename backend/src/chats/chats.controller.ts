@@ -21,8 +21,10 @@ import {
   CreateReplayScheduleDto,
   UpdateReplayScheduleDto,
 } from './dto/replay-schedule.dto';
+import { SetChatCollectionDto } from './dto/set-chat-collection.dto';
 import { SetChatPinDto } from './dto/set-chat-pin.dto';
 import { SetChatParentDto } from './dto/set-chat-parent.dto';
+import { UpdateChatCollectionDto } from './dto/update-chat-collection.dto';
 import { ReplayScheduleService } from './replay-schedule.service';
 
 @Controller('chats')
@@ -44,6 +46,23 @@ export class ChatsController {
     @Body() dto: CreateChatCollectionDto,
   ) {
     return this.chatsService.createCollection(user!.id, dto);
+  }
+
+  @Patch('collections/:collectionId')
+  updateCollection(
+    @CurrentUser() user: AuthUser | null,
+    @Param('collectionId') collectionId: string,
+    @Body() dto: UpdateChatCollectionDto,
+  ) {
+    return this.chatsService.updateCollection(user!.id, collectionId, dto);
+  }
+
+  @Delete('collections/:collectionId')
+  deleteCollection(
+    @CurrentUser() user: AuthUser | null,
+    @Param('collectionId') collectionId: string,
+  ) {
+    return this.chatsService.deleteCollection(user!.id, collectionId);
   }
 
   @Post()
@@ -70,6 +89,15 @@ export class ChatsController {
     @Body() dto: SetChatPinDto,
   ) {
     return this.chatsService.setPin(user!.id, id, dto.pinned);
+  }
+
+  @Patch(':id/collection')
+  setCollection(
+    @CurrentUser() user: AuthUser | null,
+    @Param('id') id: string,
+    @Body() dto: SetChatCollectionDto,
+  ) {
+    return this.chatsService.setCollection(user!.id, id, dto.collectionId);
   }
 
   @Post('reorder')
@@ -105,6 +133,14 @@ export class ChatsController {
       id,
       Number.isFinite(parsedLimit) ? parsedLimit : 30,
     );
+  }
+
+  @Get(':id/content-summary')
+  getContentSummary(
+    @CurrentUser() user: AuthUser | null,
+    @Param('id') id: string,
+  ) {
+    return this.chatsService.getContentSummary(user!.id, id);
   }
 
   @Post('upward-grants')
