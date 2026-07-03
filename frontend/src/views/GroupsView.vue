@@ -50,6 +50,17 @@ const ungroupedChats = computed(() =>
   ),
 );
 
+function groupRecency(tile: GroupTile) {
+  const latestChat = tile.attachedChats.reduce(
+    (latest, chat) => {
+      const ts = new Date(chat.lastMessageAt ?? chat.createdAt ?? 0).getTime();
+      return ts > latest ? ts : latest;
+    },
+    0,
+  );
+  return latestChat;
+}
+
 const groupTiles = computed<GroupTile[]>(() => {
   const collectionTiles: GroupTile[] = collectionGroups.value.map((collection) => ({
     id: `collection-${collection.id}`,
@@ -68,8 +79,8 @@ const groupTiles = computed<GroupTile[]>(() => {
     attachedChats: group.children,
   }));
 
-  return [...collectionTiles, ...hierarchyTiles].sort((a, b) =>
-    a.title.localeCompare(b.title, 'ru'),
+  return [...collectionTiles, ...hierarchyTiles].sort(
+    (a, b) => groupRecency(b) - groupRecency(a),
   );
 });
 
@@ -191,8 +202,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="page page--wide">
-    <header class="page-hero">
+  <section class="groups-page">
+    <header class="groups-page__header">
       <h2 class="page-title">Группы</h2>
       <p class="caption">
         Создайте группу. Если прикрепить чаты, она станет иерархической.
@@ -207,9 +218,10 @@ onMounted(() => {
       </div>
     </header>
 
-    <p v-if="error" class="groups-error">{{ error }}</p>
+    <div class="groups-page__scroll">
+      <p v-if="error" class="groups-error">{{ error }}</p>
 
-    <section class="groups-block">
+      <section class="groups-block">
       <h3 class="groups-block__title">Список групп</h3>
       <div v-if="groupTiles.length === 0" class="page-state page-state--empty">
         <p class="caption">Пока нет групп. Создайте первую группу.</p>
@@ -280,5 +292,6 @@ onMounted(() => {
         <li v-if="ungroupedChats.length === 0" class="caption">Все чаты уже в иерархии</li>
       </ul>
     </section>
+    </div>
   </section>
 </template>

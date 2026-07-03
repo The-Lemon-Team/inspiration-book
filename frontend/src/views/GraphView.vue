@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { RouterLink } from 'vue-router';
 import { chatsApi } from '@/api/chats';
+import GraphNodePanel from '@/components/graph/GraphNodePanel.vue';
 import { useChatsStore } from '@/stores/chats';
 import type { Chat, UpwardGrant } from '@/types';
 
@@ -20,6 +20,11 @@ type GraphEdge = {
   target: NodePoint;
 };
 
+const GRAPH_WIDTH = 840;
+const GRAPH_HEIGHT = 560;
+const POSITIONS_KEY = 'inspiration-book:graph-positions';
+const DRAG_THRESHOLD = 5;
+
 const chats = useChatsStore();
 const grants = ref<UpwardGrant[]>([]);
 const busy = ref(false);
@@ -28,6 +33,60 @@ const editMode = ref(false);
 const connectMode = ref<'parent' | 'grant'>('parent');
 const pendingSource = ref<Chat | null>(null);
 const selectedEdgeId = ref<string | null>(null);
+const selectedChatId = ref<string | null>(null);
+const graphStageRef = ref<HTMLElement | null>(null);
+const positions = ref<Record<string, { x: number; y: number }>>({});
+const draggingChatId = ref<string | null>(null);
+
+const dragState = ref<{
+  chatId: string;
+  startClientX: number;
+  startClientY: number;
+  moved: boolean;
+} | null>(null);
+
+function loadStoredPositions() {
+  try {
+    const raw = localStorage.getItem(POSITIONS_KEY);
+    if (raw) positions.value = JSON.parse(raw) as Record<string, { x: number; y: number }>;
+  } catch {
+    positions.value = {};
+  }
+}
+
+function savePositions() {
+  localStorage.setItem(POSITIONS_KEY, JSON.stringify(positions.value));
+}
+
+function resetLayout() {
+  positions.value = {};
+  localStorage.removeItem(POSITIONS_KEY);
+}
+
+function computeAutoPosition(chat: Chat, index: number, regularCount: number) {
+  if (chat.kind === 'GENERAL') {
+    return { x: GRAPH_WIDTH / 2, y: 50 };
+  }
+
+  const radiusX = Math.max(280, regularCount * 42);
+  const radiusY = Math.max(160, regularCount * 24);
+  const angle = (Math.PI * 2 * index) / Math.max(regularCount, 1) - Math.PI / 2;
+  return {
+    x: GRAPH_WIDTH / 2 + Math.cos(angle) * radiusX,
+    y: 300 + Math.sin(angle) * radiusY,
+  };
+}
+
+function clientToGraph(clientX: number, clientY: number) {
+  const stage = graphStageRef.value;
+  if (!stage) return { x: 0, y: 0 };
+
+  const rect = stage.getBoundingClientRect();
+  return {
+    x: ((clientX - rect.left) / rect.width) * GRAPH_WIDTH,
+    y: ((clientY - rect.top) / rect.height) * GRAPH_HEIGHT,
+  };
+}
 
 const nodes = computed<NodePoint[]>(() => {
   const all = chats.allChats;
@@ -35,20 +94,21 @@ const nodes = computed<NodePoint[]>(() => {
 
   const general = all.find((chat) => chat.kind === 'GENERAL') ?? null;
   const regular = all.filter((chat) => chat.kind !== 'GENERAL');
-  const radiusX = 330;
-  const radiusY = 190;
 
   const points: NodePoint[] = [];
   if (general) {
-    points.push({ chat: general, x: 420, y: 70 });
+    const saved = positions.value[general.id];
+    points.push({
+      chat: general,
+      ...(saved ?? computeAutoPosition(general, 0, regular.length)),
+    });
   }
 
   regular.forEach((chat, index) => {
-    const angle = (Math.PI * 2 * index) / Math.max(regular.length, 1) - Math.PI / 2;
+    const saved = positions.value[chat.id];
     points.push({
       chat,
-      x: 420 + Math.cos(angle) * radiusX,
-      y: 280 + Math.sin(angle) * radiusY,
+      ...(saved ?? computeAutoPosition(chat, index, regular.length)),
     });
   });
 
@@ -100,26 +160,13 @@ const selectedEdge = computed(() =>
   graphEdges.value.find((edge) => edge.id === selectedEdgeId.value) ?? null,
 );
 
-const collectionGroups = computed(() =>
-  chats.collections
-    .map((collection) => ({
-      name: collection.name,
-      chats: (collection.chats ?? []).map((chat) => chat.name),
-    }))
-    .filter((collection) => collection.chats.length > 0),
+const selectedChat = computed(
+  () => chats.allChats.find((chat) => chat.id === selectedChatId.value) ?? null,
 );
 
-const allChatsList = computed(() =>
-  chats.allChats
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
-    .map((chat) => ({
-      id: chat.id,
-      name: chat.name,
-      kind: chat.kind,
-      parentChatId: chat.parentChatId ?? null,
-    })),
-);
+function selectChat(chatId: string) {
+  selectedChatId.value = chatId;
+}
 
 async function loadGraph() {
   busy.value = true;
@@ -152,6 +199,56 @@ function onNodeClick(chat: Chat) {
   }
 
   void connectNodes(pendingSource.value, chat);
+}
+
+function onNodePointerDown(event: PointerEvent, chat: Chat) {
+  event.preventDefault();
+  (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  dragState.value = {
+    chatId: chat.id,
+    startClientX: event.clientX,
+    startClientY: event.clientY,
+    moved: false,
+  };
+}
+
+function onNodePointerMove(event: PointerEvent) {
+  if (!dragState.value) return;
+
+  const dx = event.clientX - dragState.value.startClientX;
+  const dy = event.clientY - dragState.value.startClientY;
+  if (!dragState.value.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+
+  dragState.value.moved = true;
+  draggingChatId.value = dragState.value.chatId;
+  const { x, y } = clientToGraph(event.clientX, event.clientY);
+  positions.value = {
+    ...positions.value,
+    [dragState.value.chatId]: {
+      x: Math.max(65, Math.min(GRAPH_WIDTH - 65, x)),
+      y: Math.max(40, Math.min(GRAPH_HEIGHT - 40, y)),
+    },
+  };
+}
+
+function onNodePointerUp(_event: PointerEvent, chat: Chat) {
+  if (!dragState.value) return;
+
+  const wasDrag = dragState.value.moved;
+  dragState.value = null;
+  draggingChatId.value = null;
+
+  if (wasDrag) {
+    savePositions();
+    return;
+  }
+
+  if (editMode.value) {
+    onNodeClick(chat);
+    return;
+  }
+
+  selectChat(chat.id);
 }
 
 async function connectNodes(source: Chat, target: Chat) {
@@ -197,22 +294,23 @@ async function deleteSelectedEdge() {
 }
 
 onMounted(() => {
+  loadStoredPositions();
   void loadGraph();
 });
 </script>
 
 <template>
-  <section class="page page--wide">
-    <header class="page-hero">
-      <h2 class="page-title">Graph View</h2>
-      <p class="caption">
-        MVP визуального редактора: соединяйте чаты и удаляйте связи прямо на графе.
-      </p>
-      <div class="graph-toolbar">
-        <button type="button" class="btn-secondary" @click="editMode = !editMode">
-          {{ editMode ? 'Завершить редактирование' : 'Редактировать связи' }}
+  <section class="page page--graph">
+    <div class="graph-workspace">
+      <header class="graph-workspace__toolbar">
+        <h2 class="graph-workspace__title">Graph</h2>
+        <button type="button" class="btn-secondary" @click="resetLayout">
+          Сбросить раскладку
         </button>
-        <select v-if="editMode" v-model="connectMode">
+        <button type="button" class="btn-secondary" @click="editMode = !editMode">
+          {{ editMode ? 'Готово' : 'Связи' }}
+        </button>
+        <select v-if="editMode" v-model="connectMode" class="graph-workspace__select">
           <option value="parent">parent-child</option>
           <option value="grant">upward grant</option>
         </select>
@@ -223,104 +321,99 @@ onMounted(() => {
           :disabled="busy"
           @click="deleteSelectedEdge"
         >
-          Удалить выбранную связь
+          Удалить связь
         </button>
-        <button v-if="editMode && pendingSource" type="button" class="btn-secondary" @click="resetComposer">
+        <button
+          v-if="editMode && pendingSource"
+          type="button"
+          class="btn-secondary"
+          @click="resetComposer"
+        >
           Сбросить выбор
         </button>
-      </div>
-      <p v-if="editMode" class="caption">
-        1) Кликните исходный чат, 2) кликните целевой чат. Для parent-child: исходный = дочерний, целевой = родитель.
-      </p>
-      <p v-if="pendingSource" class="caption">
-        Выбран исходный чат: <strong>{{ pendingSource.name }}</strong>
-      </p>
-      <p v-if="error" class="groups-error">{{ error }}</p>
-    </header>
+        <p v-if="editMode" class="graph-workspace__hint caption">
+          Клик: исходный → целевой. parent-child: исходный = дочерний.
+        </p>
+        <p v-if="pendingSource" class="graph-workspace__hint caption">
+          Исходный: <strong>{{ pendingSource.name }}</strong>
+        </p>
+        <p v-if="error" class="graph-workspace__error">{{ error }}</p>
+      </header>
 
-    <div class="graph-stage">
-      <svg class="graph-stage__svg" viewBox="0 0 840 560" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <marker
-            id="graphArrow"
-            markerWidth="8"
-            markerHeight="8"
-            refX="6.5"
-            refY="3"
-            orient="auto"
-          >
-            <path d="M0,0 L7,3 L0,6 Z" fill="#8b7cf8" />
-          </marker>
-        </defs>
+      <div ref="graphStageRef" class="graph-stage graph-stage--fullscreen">
+        <svg
+          class="graph-stage__svg"
+          :viewBox="`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`"
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <defs>
+            <marker
+              id="graphArrow"
+              markerWidth="8"
+              markerHeight="8"
+              refX="6.5"
+              refY="3"
+              orient="auto"
+            >
+              <path d="M0,0 L7,3 L0,6 Z" fill="#8b7cf8" />
+            </marker>
+          </defs>
 
-        <line
-          v-for="edge in graphEdges"
-          :key="edge.id"
-          :x1="edge.source.x"
-          :y1="edge.source.y"
-          :x2="edge.target.x"
-          :y2="edge.target.y"
-          class="graph-stage__edge"
+          <line
+            v-for="edge in graphEdges"
+            :key="edge.id"
+            :x1="edge.source.x"
+            :y1="edge.source.y"
+            :x2="edge.target.x"
+            :y2="edge.target.y"
+            class="graph-stage__edge"
+            :class="{
+              'graph-stage__edge--grant': edge.kind === 'grant',
+              'graph-stage__edge--selected': edge.id === selectedEdgeId,
+            }"
+            marker-end="url(#graphArrow)"
+            @click.stop="editMode ? (selectedEdgeId = edge.id) : null"
+          />
+        </svg>
+
+        <div
+          v-for="point in nodes"
+          :key="point.chat.id"
+          class="graph-node"
           :class="{
-            'graph-stage__edge--grant': edge.kind === 'grant',
-            'graph-stage__edge--selected': edge.id === selectedEdgeId,
+            'graph-node--general': point.chat.kind === 'GENERAL',
+            'graph-node--child': point.chat.parentChatId,
+            'graph-node--pending': pendingSource?.id === point.chat.id,
+            'graph-node--selected': selectedChatId === point.chat.id,
+            'graph-node--dragging': draggingChatId === point.chat.id,
           }"
-          marker-end="url(#graphArrow)"
-          @click.stop="editMode ? (selectedEdgeId = edge.id) : null"
-        />
-      </svg>
-
-      <RouterLink
-        v-for="point in nodes"
-        :key="point.chat.id"
-        class="graph-node"
-        :class="{
-          'graph-node--general': point.chat.kind === 'GENERAL',
-          'graph-node--child': point.chat.parentChatId,
-          'graph-node--pending': pendingSource?.id === point.chat.id,
-        }"
-        :style="{ left: `${point.x}px`, top: `${point.y}px` }"
-        :to="point.chat.kind === 'GENERAL' ? '/chats/general' : `/chats/${point.chat.id}`"
-        @click.prevent="onNodeClick(point.chat)"
-      >
-        <span class="graph-node__title">{{ point.chat.name }}</span>
-        <span class="graph-node__meta">
-          {{ point.chat.parentChatId ? 'дочерний' : 'самостоятельный' }}
-        </span>
-      </RouterLink>
-    </div>
-
-    <section class="groups-block">
-      <h3 class="groups-block__title">Независимые группы (журналы)</h3>
-      <div v-if="collectionGroups.length === 0" class="page-state page-state--empty">
-        <p class="caption">Пока нет журналов с чатами</p>
-      </div>
-      <div v-else class="groups-grid">
-        <article v-for="group in collectionGroups" :key="group.name" class="groups-card">
-          <h4 class="groups-card__title">{{ group.name }}</h4>
-          <p class="caption">{{ group.chats.join(' · ') }}</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="groups-block">
-      <h3 class="groups-block__title">Все чаты</h3>
-      <ul class="groups-ungrouped">
-        <li v-for="chat in allChatsList" :key="chat.id" class="groups-ungrouped__item">
-          <RouterLink :to="chat.kind === 'GENERAL' ? '/chats/general' : `/chats/${chat.id}`">
-            {{ chat.name }}
-          </RouterLink>
-          <span class="caption">
-            {{
-              chat.kind === 'GENERAL'
-                ? 'general'
-                : chat.parentChatId
-                  ? 'дочерний'
-                  : 'самостоятельный'
-            }}
+          :style="{
+            left: `${(point.x / GRAPH_WIDTH) * 100}%`,
+            top: `${(point.y / GRAPH_HEIGHT) * 100}%`,
+          }"
+          role="button"
+          tabindex="0"
+          @pointerdown="onNodePointerDown($event, point.chat)"
+          @pointermove="onNodePointerMove"
+          @pointerup="onNodePointerUp($event, point.chat)"
+          @pointercancel="onNodePointerUp($event, point.chat)"
+          @keydown.enter.prevent="selectChat(point.chat.id)"
+        >
+          <span class="graph-node__title">{{ point.chat.name }}</span>
+          <span class="graph-node__meta">
+            {{ point.chat.parentChatId ? 'дочерний' : 'самостоятельный' }}
           </span>
-        </li>
-      </ul>
-    </section>
+        </div>
+      </div>
+
+      <GraphNodePanel
+        v-if="selectedChat"
+        :chat="selectedChat"
+        :grants="grants"
+        @close="selectedChatId = null"
+        @updated="loadGraph"
+        @select-chat="selectChat"
+      />
+    </div>
   </section>
 </template>
