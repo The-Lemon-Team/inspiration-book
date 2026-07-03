@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { api } from '@/api/client';
 import PublishMessageModal from '@/components/chat/PublishMessageModal.vue';
 import { BlockMessage } from '@/blocks';
+import { useShellMode } from '@/composables/useShellMode';
 import type { Message, UpwardTarget } from '@/types';
 import { messageAuthorLabel, tagStyle } from '@/types';
 import { detectMessageContentTypes } from '@/utils/chat-content-types';
@@ -12,21 +13,38 @@ const props = defineProps<{
   message: Message;
   upwardTargets?: UpwardTarget[];
   hasChildren?: boolean;
+  selected?: boolean;
+  selectionMode?: boolean;
+  desktopSelectEnabled?: boolean;
 }>();
 
 const emit = defineEmits<{
   updated: [message: Message];
   deleted: [messageId: string];
   replayed: [];
+  'message-click': [messageId: string, event: MouseEvent];
+  'message-mousedown': [messageId: string, event: MouseEvent];
+  'message-enter': [messageId: string];
+  'context-menu': [messageId: string, event: MouseEvent];
+  'checkbox-click': [messageId: string, event: MouseEvent];
 }>();
+
+const { isDesktopShell } = useShellMode();
 
 const publishModalOpen = ref(false);
 const busy = ref(false);
 const actionError = ref('');
+const hovered = ref(false);
 
 const publishState = computed(() => getMessagePublishState(props.message));
 const authorLabel = computed(() => messageAuthorLabel(props.message));
 const contentTypes = computed(() => detectMessageContentTypes(props.message));
+const showDesktopSelectUi = computed(
+  () => props.desktopSelectEnabled ?? isDesktopShell,
+);
+const showCheckbox = computed(
+  () => showDesktopSelectUi.value && (props.selectionMode || hovered.value),
+);
 
 const flowBadge = computed(() => {
   const meta = props.message.flowMeta;
@@ -169,132 +187,167 @@ async function removeMessage() {
 </script>
 
 <template>
-  <article class="chat-message">
-    <div class="chat-message__avatar" aria-hidden="true">
-      <span class="material-symbols-outlined">person</span>
-    </div>
-    <div class="chat-message__body">
-      <header class="chat-message__header">
-        <span class="chat-message__author">{{ authorLabel }}</span>
-        <time class="chat-message__time">{{ formatTime(message.createdAt) }}</time>
-      </header>
+  <div
+    class="chat-message-wrap"
+    :class="{
+      'chat-message-wrap--selected': selected,
+      'chat-message-wrap--selection-mode': selectionMode,
+    }"
+    :data-message-id="message.id"
+    @mouseenter="
+      hovered = true;
+      emit('message-enter', message.id);
+    "
+    @mouseleave="hovered = false"
+    @mousedown="emit('message-mousedown', message.id, $event)"
+    @click="emit('message-click', message.id, $event)"
+    @contextmenu.prevent="showDesktopSelectUi && emit('context-menu', message.id, $event)"
+  >
+    <button
+      v-if="showDesktopSelectUi"
+      type="button"
+      class="chat-message__checkbox"
+      :class="{
+        'chat-message__checkbox--visible': showCheckbox,
+        'chat-message__checkbox--checked': selected,
+      }"
+      :aria-label="selected ? 'Снять выделение' : 'Выбрать сообщение'"
+      :aria-pressed="selected"
+      @mousedown.stop
+      @click="emit('checkbox-click', message.id, $event)"
+    >
+      <span class="material-symbols-outlined">
+        {{ selected ? 'check_circle' : 'radio_button_unchecked' }}
+      </span>
+    </button>
 
-      <p v-if="flowBadge" class="chat-message__flow-badge caption">
-        <span class="material-symbols-outlined">sync_alt</span>
-        {{ flowBadge }}
-      </p>
+    <article class="chat-message">
+      <div class="chat-message__avatar" aria-hidden="true">
+        <span class="material-symbols-outlined">person</span>
+      </div>
+      <div class="chat-message__body">
+        <header class="chat-message__header">
+          <span class="chat-message__author">{{ authorLabel }}</span>
+          <time class="chat-message__time">{{ formatTime(message.createdAt) }}</time>
+        </header>
 
-      <BlockMessage :raw-text="message.rawText" :content="message.content" />
-      <ul v-if="contentTypes.length" class="chat-message__content-types">
-        <li
-          v-for="contentType in contentTypes"
-          :key="contentType.id"
-          class="chat-message__content-type"
-        >
-          <span class="material-symbols-outlined">{{ contentType.icon }}</span>
-          {{ contentType.label }}
-        </li>
-      </ul>
-      <footer class="chat-message__footer">
-        <div class="chat-message__controls">
-          <span
-            v-if="publishState.status === 'published' && publishState.tag"
-            class="chat-message__badge"
-            :style="{
-              color: tagStyle(publishState.tag.color).badgeColor,
-              background: tagStyle(publishState.tag.color).badgeBackground,
-            }"
+        <p v-if="flowBadge" class="chat-message__flow-badge caption">
+          <span class="material-symbols-outlined">sync_alt</span>
+          {{ flowBadge }}
+        </p>
+
+        <BlockMessage :raw-text="message.rawText" :content="message.content" />
+        <ul v-if="contentTypes.length" class="chat-message__content-types">
+          <li
+            v-for="contentType in contentTypes"
+            :key="contentType.id"
+            class="chat-message__content-type"
           >
-            <span class="material-symbols-outlined">public</span>
-            {{ publishState.tag.name }}
-          </span>
+            <span class="material-symbols-outlined">{{ contentType.icon }}</span>
+            {{ contentType.label }}
+          </li>
+        </ul>
+        <footer v-if="!isDesktopShell" class="chat-message__footer">
+          <div class="chat-message__controls">
+            <span
+              v-if="publishState.status === 'published' && publishState.tag"
+              class="chat-message__badge"
+              :style="{
+                color: tagStyle(publishState.tag.color).badgeColor,
+                background: tagStyle(publishState.tag.color).badgeBackground,
+              }"
+            >
+              <span class="material-symbols-outlined">public</span>
+              {{ publishState.tag.name }}
+            </span>
 
-          <button
-            v-if="publishState.status === 'private'"
-            type="button"
-            class="chat-message__action"
-            :disabled="busy"
-            @click="openPublishModal"
-          >
-            <span class="material-symbols-outlined">upload</span>
-            Опубликовать
-          </button>
-
-          <template v-else>
             <button
+              v-if="publishState.status === 'private'"
               type="button"
               class="chat-message__action"
               :disabled="busy"
               @click="openPublishModal"
             >
-              <span class="material-symbols-outlined">edit</span>
-              Группа
+              <span class="material-symbols-outlined">upload</span>
+              Опубликовать
             </button>
+
+            <template v-else>
+              <button
+                type="button"
+                class="chat-message__action"
+                :disabled="busy"
+                @click="openPublishModal"
+              >
+                <span class="material-symbols-outlined">edit</span>
+                Группа
+              </button>
+              <button
+                type="button"
+                class="chat-message__action chat-message__action--muted"
+                :disabled="busy"
+                @click="unpublish"
+              >
+                <span class="material-symbols-outlined">visibility_off</span>
+                Снять
+              </button>
+            </template>
+
+            <button
+              v-for="target in upwardTargets ?? []"
+              :key="target.chatId"
+              type="button"
+              class="chat-message__action"
+              :disabled="busy"
+              @click="replayUp(target)"
+            >
+              <span class="material-symbols-outlined">north</span>
+              {{ target.chatName }}
+            </button>
+
+            <button
+              v-if="canReplayDown"
+              type="button"
+              class="chat-message__action"
+              :disabled="busy"
+              @click="replayDown"
+            >
+              <span class="material-symbols-outlined">south</span>
+              Детям
+            </button>
+
+            <button
+              v-if="canShareToGeneral"
+              type="button"
+              class="chat-message__action"
+              :disabled="busy"
+              @click="shareToGeneral"
+            >
+              <span class="material-symbols-outlined">forward</span>
+              general
+            </button>
+
             <button
               type="button"
-              class="chat-message__action chat-message__action--muted"
+              class="chat-message__action chat-message__action--danger"
               :disabled="busy"
-              @click="unpublish"
+              aria-label="Удалить сообщение"
+              @click="removeMessage"
             >
-              <span class="material-symbols-outlined">visibility_off</span>
-              Снять
+              <span class="material-symbols-outlined">delete</span>
             </button>
-          </template>
+          </div>
+        </footer>
+        <p v-if="actionError" class="chat-message__error">{{ actionError }}</p>
+      </div>
 
-          <button
-            v-for="target in upwardTargets ?? []"
-            :key="target.chatId"
-            type="button"
-            class="chat-message__action"
-            :disabled="busy"
-            @click="replayUp(target)"
-          >
-            <span class="material-symbols-outlined">north</span>
-            {{ target.chatName }}
-          </button>
-
-          <button
-            v-if="canReplayDown"
-            type="button"
-            class="chat-message__action"
-            :disabled="busy"
-            @click="replayDown"
-          >
-            <span class="material-symbols-outlined">south</span>
-            Детям
-          </button>
-
-          <button
-            v-if="canShareToGeneral"
-            type="button"
-            class="chat-message__action"
-            :disabled="busy"
-            @click="shareToGeneral"
-          >
-            <span class="material-symbols-outlined">forward</span>
-            general
-          </button>
-
-          <button
-            type="button"
-            class="chat-message__action chat-message__action--danger"
-            :disabled="busy"
-            aria-label="Удалить сообщение"
-            @click="removeMessage"
-          >
-            <span class="material-symbols-outlined">delete</span>
-          </button>
-        </div>
-      </footer>
-      <p v-if="actionError" class="chat-message__error">{{ actionError }}</p>
-    </div>
-
-    <PublishMessageModal
-      :open="publishModalOpen"
-      :message-id="message.id"
-      :initial-tag-id="publishState.tag?.id"
-      @close="publishModalOpen = false"
-      @publish="onPublish"
-    />
-  </article>
+      <PublishMessageModal
+        :open="publishModalOpen"
+        :message-id="message.id"
+        :initial-tag-id="publishState.tag?.id"
+        @close="publishModalOpen = false"
+        @publish="onPublish"
+      />
+    </article>
+  </div>
 </template>
