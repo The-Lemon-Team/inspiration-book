@@ -6,7 +6,7 @@
     "dev:backend": "npm run start:dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:frontend:desktop": "npm run dev:desktop --prefix frontend",
-    "dev:electron": "npm run dev --prefix electron",
+    "dev:electron": "npm run start:dev --prefix electron",
     "desktop": "node scripts/desktop.mjs",
     "desktop:shell": "node scripts/desktop.mjs --shell-only"
   }

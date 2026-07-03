@@ -25,9 +25,9 @@ function createWindow() {
   });
 
   if (isDev) {
-    win.loadURL(`${FRONTEND_URL}/chats/general`);
+    win.loadURL(`${FRONTEND_URL}/welcome`);
   } else {
-    win.loadFile(frontendIndexPath(), { hash: '/chats/general' });
+    win.loadFile(frontendIndexPath(), { hash: '/welcome' });
   }
 
   win.webContents.setWindowOpenHandler(({ url }) => {

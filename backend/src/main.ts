@@ -13,8 +13,21 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Electron production loads from file:// and sends Origin: null
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      if (origin === frontendUrl || /^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
+    },
     credentials: true,
   });
 

@@ -8,6 +8,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "npm run build && electron .",
+    "dev:watch": "tsc -w -p tsconfig.json",
+    "start:dev": "electron .",
     "start": "npm run build && electron .",
     "build:frontend": "npm run build:electron --prefix ../frontend",
     "pack": "npm run build:frontend && npm run build && electron-builder --dir",
