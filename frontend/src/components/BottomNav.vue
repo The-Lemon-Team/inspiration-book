@@ -1,43 +1,66 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router';
-import { computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { RouterLink, useRoute } from 'vue-router';
+import { DESKTOP_SHELL_NAV_ITEMS, isAppNavActive, type AppNavItem } from '@/config/app-nav';
+import { ALL_CHATS_FOLDER_ID, useChatFolders } from '@/composables/useChatFolders';
+import { useMoreModal } from '@/composables/useMoreModal';
 
 const route = useRoute();
+const { moreModalOpen, openMoreModal } = useMoreModal();
+const { selectFolder } = useChatFolders();
 
-const isChatsActive = computed(() => {
-  if (route.name === 'chats-list' || route.name === 'chat-room' || route.name === 'chat') {
-    return true;
+function navItemLabel(item: AppNavItem): string {
+  return item.to === '/settings' ? 'Ещё' : item.label;
+}
+
+function isNavItemActive(item: AppNavItem): boolean {
+  if (item.to === '/settings') {
+    return moreModalOpen.value || isAppNavActive(item, route);
   }
-  return route.path.startsWith('/chats') || route.path === '/chat';
-});
+  return isAppNavActive(item, route);
+}
+
+function isMoreNavItem(item: AppNavItem): boolean {
+  return item.to === '/settings';
+}
+
+function isChatsNavItem(item: AppNavItem): boolean {
+  return item.to === '/chats';
+}
+
+function onNavClick(item: AppNavItem) {
+  if (isChatsNavItem(item)) {
+    selectFolder(ALL_CHATS_FOLDER_ID);
+  }
+}
+
+function navItemTo(item: AppNavItem) {
+  return isChatsNavItem(item) ? { name: 'chats-list' } : item.to;
+}
 </script>
 
 <template>
   <nav class="bottom-nav">
-    <RouterLink to="/filters" class="bottom-nav__item">
-      <span class="material-symbols-outlined">filter_alt</span>
-      <span>Фильтры</span>
-    </RouterLink>
-    <RouterLink to="/chats" class="bottom-nav__item" :class="{ 'router-link-active': isChatsActive }">
-      <span class="material-symbols-outlined">forum</span>
-      <span>Чаты</span>
-    </RouterLink>
-    <RouterLink to="/groups" class="bottom-nav__item">
-      <span class="material-symbols-outlined">account_tree</span>
-      <span>Группы</span>
-    </RouterLink>
-    <RouterLink to="/graph" class="bottom-nav__item">
-      <span class="material-symbols-outlined">graph_5</span>
-      <span>Graph</span>
-    </RouterLink>
-    <RouterLink to="/timeline" class="bottom-nav__item">
-      <span class="material-symbols-outlined">view_timeline</span>
-      <span>Лента</span>
-    </RouterLink>
-    <RouterLink to="/settings" class="bottom-nav__item">
-      <span class="material-symbols-outlined">settings</span>
-      <span>Ещё</span>
-    </RouterLink>
+    <template v-for="item in DESKTOP_SHELL_NAV_ITEMS" :key="item.to">
+      <button
+        v-if="isMoreNavItem(item)"
+        type="button"
+        class="bottom-nav__item"
+        :class="{ 'router-link-active': isNavItemActive(item) }"
+        @click="openMoreModal"
+      >
+        <span class="material-symbols-outlined">{{ item.icon }}</span>
+        <span>{{ navItemLabel(item) }}</span>
+      </button>
+      <RouterLink
+        v-else
+        :to="navItemTo(item)"
+        class="bottom-nav__item"
+        :class="{ 'router-link-active': isNavItemActive(item) }"
+        @click="onNavClick(item)"
+      >
+        <span class="material-symbols-outlined">{{ item.icon }}</span>
+        <span>{{ navItemLabel(item) }}</span>
+      </RouterLink>
+    </template>
   </nav>
 </template>

@@ -2,9 +2,17 @@
 import { RouterLink } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useSettingsStore } from '@/stores/settings';
+import { useMoreModal } from '@/composables/useMoreModal';
+import { ALL_CHATS_FOLDER_ID, useChatFolders } from '@/composables/useChatFolders';
 
 const auth = useAuthStore();
 const settings = useSettingsStore();
+const { openMoreModal } = useMoreModal();
+const { selectFolder } = useChatFolders();
+
+function onChatsClick() {
+  selectFolder(ALL_CHATS_FOLDER_ID);
+}
 </script>
 
 <template>
@@ -18,13 +26,12 @@ const settings = useSettingsStore();
 
         <nav class="header-nav">
           <RouterLink to="/filters">Фильтры</RouterLink>
-          <RouterLink v-if="auth.isAuthenticated" to="/groups" class="header-nav__wide">
-            Группы
-          </RouterLink>
-          <RouterLink v-if="auth.isAuthenticated" to="/graph" class="header-nav__wide">
-            Graph
-          </RouterLink>
-          <RouterLink v-if="auth.isAuthenticated" to="/chats" class="header-nav__wide">
+          <RouterLink
+            v-if="auth.isAuthenticated"
+            :to="{ name: 'chats-list' }"
+            class="header-nav__wide"
+            @click="onChatsClick"
+          >
             Чаты
           </RouterLink>
           <RouterLink v-if="auth.isAuthenticated" to="/timeline" class="header-nav__wide">
@@ -35,9 +42,15 @@ const settings = useSettingsStore();
 
       <div class="header-actions">
         <template v-if="auth.isAuthenticated">
-          <RouterLink to="/settings" class="header-settings" title="Настройки">
+          <button
+            type="button"
+            class="header-settings"
+            title="Ещё"
+            aria-label="Ещё"
+            @click="openMoreModal"
+          >
             <span class="material-symbols-outlined">settings</span>
-          </RouterLink>
+          </button>
           <span class="header-user caption">{{ auth.user?.name || auth.user?.email }}</span>
           <button type="button" class="ghost-btn" @click="$emit('logout')">Выйти</button>
         </template>
